@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 3 – Syntax Analysis (CO3) | Cheat Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #4A90E2;
+    --primary-light: #E3F2FD;
+    --primary-dark: #1565C0;
+    --teal: #50C878;
+    --teal-light: #D1F2EB;
+    --accent: #9C27B0;
+    --accent-light: #F3E5F5;
+    --amber: #FF9800;
+    --amber-light: #FFF3E0;
+    --red: #E53935;
+    --red-light: #FFEBEE;
+    --green: #43A047;
+    --green-light: #E8F5E9;
+    --bg: #F8F9FB;
+    --surface: #FFFFFF;
+    --border: #E1E8ED;
+    --text: #263238;
+    --text-muted: #546E7A;
+    --text-light: #90A4AE;
+    --page-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    --card-radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #B0BEC5;
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    background: var(--surface);
+    margin: 24px auto;
+    border-radius: 4px;
+    box-shadow: var(--page-shadow);
+    padding: 14mm 16mm 12mm 16mm;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary), var(--teal), var(--accent));
+  }
+  /* TITLE PAGE */
+  .title-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 297mm;
+    background: linear-gradient(145deg, #E3F2FD 0%, #E8F5E9 50%, #F3E5F5 100%);
+    padding: 20mm;
+  }
+  .title-badge {
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+  .title-main {
+    font-family: 'Playfair Display', serif;
+    font-size: 46px;
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--primary-dark);
+    margin-bottom: 12px;
+  }
+  .title-sub {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--teal);
+    margin-bottom: 6px;
+  }
+  .title-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 400px;
+    margin-bottom: 40px;
+  }
+  .title-divider {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--teal));
+    border-radius: 2px;
+    margin: 20px auto;
+  }
+  .title-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+    margin-top: 8px;
+  }
+  .meta-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .meta-card .mc-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+  }
+  .meta-card .mc-label {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .title-footer {
+    margin-top: 44px;
+    font-size: 11px;
+    color: var(--text-light);
+    letter-spacing: 0.5px;
+  }
+  /* TOC */
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 14px;
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+  .toc-item:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+  }
+  .toc-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 30px;
+  }
+  .toc-text {
+    flex: 1;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  /* HEADERS */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-title-wrap {
+    flex: 1;
+  }
+  .st-badge {
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.2;
+  }
+  .page-number {
+    font-size: 11px;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+  .page-footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 16mm;
+    right: 16mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-light);
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  /* TYPOGRAPHY */
+  h2.sec2 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--primary-dark);
+    margin: 14px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--primary-light);
+  }
+  h3.sec3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--teal);
+    margin: 10px 0 6px 0;
+  }
+  p {
+    margin-bottom: 8px;
+  }
+  ul, ol {
+    margin-left: 18px;
+    margin-bottom: 8px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  /* CARDS */
+  .card {
+    border-radius: var(--card-radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border: 1.5px solid;
+  }
+  .card-blue {
+    background: var(--primary-light);
+    border-color: #90CAF9;
+  }
+  .card-teal {
+    background: var(--teal-light);
+    border-color: #80CBC4;
+  }
+  .card-purple {
+    background: var(--accent-light);
+    border-color: #CE93D8;
+  }
+  .card-amber {
+    background: var(--amber-light);
+    border-color: #FFCC80;
+  }
+  .card-red {
+    background: var(--red-light);
+    border-color: #EF9A9A;
+  }
+  .card-green {
+    background: var(--green-light);
+    border-color: #A5D6A7;
+  }
+  /* NOTE BOXES */
+  .note-box {
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+    font-size: 12.5px;
+  }
+  .note-box.important {
+    background: var(--red-light);
+    border-color: var(--red);
+  }
+  .note-box.tip {
+    background: var(--green-light);
+    border-color: var(--green);
+  }
+  .note-box.exam {
+    background: var(--amber-light);
+    border-color: var(--amber);
+  }
+  .note-box.info {
+    background: var(--primary-light);
+    border-color: var(--primary);
+  }
+  /* CODE BLOCKS */
+  .code-block {
+    background: #263238;
+    color: #ECEFF1;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+  .code-block .keyword { color: #C792EA; }
+  .code-block .string { color: #C3E88D; }
+  .code-block .number { color: #F78C6C; }
+  .code-block .comment { color: #546E7A; font-style: italic; }
+  .code-block .operator { color: #89DDFF; }
+  .code-block .nt { color: #FFCB6B; }
+  /* TABLES */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 12.5px;
+  }
+  th {
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  tr:nth-child(even) {
+    background: var(--bg);
+  }
+  /* LAYOUT */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+  .badge-blue { background: var(--primary-light); color: var(--primary-dark); }
+  .badge-teal { background: var(--teal-light); color: #00695C; }
+  .badge-purple { background: var(--accent-light); color: #6A1B9A; }
+  .badge-amber { background: var(--amber-light); color: #E65100; }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-green { background: var(--green-light); color: #2E7D32; }
+  /* DIAGRAMS */
+  .diagram-box {
+    background: var(--bg);
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+  }
+  .flow-step {
+    display: inline-block;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin: 4px;
+    font-weight: 500;
+    font-size: 12px;
+  }
+  .flow-arrow {
+    display: inline-block;
+    color: var(--primary);
+    font-size: 18px;
+    margin: 0 6px;
+  }
+  /* EXAM Q&A */
+  .exam-q {
+    background: var(--bg);
+    border-left: 3px solid var(--primary);
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+  }
+  .eq-question {
+    font-weight: 600;
+    color: var(--primary-dark);
+    font-size: 12.5px;
+    margin-bottom: 4px;
+  }
+  .eq-answer {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  /* SUMMARY GRID */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .sum-card {
+    border: 2px solid;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .sc-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .sc-body {
+    font-size: 11.5px;
+  }
+  .sc-body ul {
+    margin-left: 14px;
+  }
+  .sc-body li {
+    margin-bottom: 3px;
+  }
+  /* PARSE TREE */
+  .tree-diagram {
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.8;
+  }
+  .tree-node {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 2px solid var(--teal);
+    border-radius: 6px;
+    background: var(--teal-light);
+    margin: 2px;
+  }
+  @media print {
+    body { background: white; }
+    .page {
+      margin: 0;
+      box-shadow: none;
+      page-break-after: always;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE PAGE -->
+<div class="page title-page">
+  <div class="title-badge">Module 3 • CO3</div>
+  <h1 class="title-main">Syntax Analysis</h1>
+  <div class="title-sub">Compiler Design Cheat Sheet</div>
+  <div class="title-desc">
+    Complete guide to parsing techniques — context-free grammars, top-down and bottom-up parsing, and LR parsing
+  </div>
+  <div class="title-divider"></div>
+  <div class="title-meta-grid">
+    <div class="meta-card">
+      <div class="mc-num">10</div>
+      <div class="mc-label">Topics Covered</div>
+    </div>
+    <div class="meta-card">
+      <div class="mc-num">13</div>
+      <div class="mc-label">Pages</div>
+    </div>
+    <div class="meta-card">
+      <div class="mc-num">100%</div>
+      <div class="mc-label">Exam Ready</div>
+    </div>
+  </div>
+  <div class="title-footer">
+    B.E. Computer Science • Compiler Design • Academic Study Guide
+  </div>
+</div>
+
+<!-- TOC PAGE -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Contents</div>
+      <h1 class="section-title">Table of Contents</h1>
+    </div>
+    <div class="page-number">Page 2</div>
+  </div>
+  <div class="note-box exam">
+    <strong>📚 Study Guide:</strong> This cheat sheet covers all essential topics for Module 3 – Syntax Analysis. Master parsing techniques for exam success!
+  </div>
+  <div class="toc-grid">
+    <div class="toc-item">
+      <div class="toc-num">01</div>
+      <div class="toc-text">Introduction to Syntax Analysis</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">02</div>
+      <div class="toc-text">Context-Free Grammars (CFG)</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">03</div>
+      <div class="toc-text">Derivations & Parse Trees</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">04</div>
+      <div class="toc-text">Ambiguity & Associativity</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">05</div>
+      <div class="toc-text">Top-Down Parsing</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">06</div>
+      <div class="toc-text">Recursive Descent Parsing</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">07</div>
+      <div class="toc-text">Left Recursion & Left Factoring</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">08</div>
+      <div class="toc-text">Predictive Parsing & LL(1)</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">09</div>
+      <div class="toc-text">Bottom-Up Parsing</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">10</div>
+      <div class="toc-text">LR Parsing Techniques</div>
+    </div>
+  </div>
+  <h2 class="sec2">What You'll Master</h2>
+  <div class="two-col">
+    <div>
+      <div class="card card-blue">
+        <strong>🎯 Top-Down Techniques</strong>
+        <ul style="margin-top:6px; font-size:12px;">
+          <li>Recursive descent parsing</li>
+          <li>Predictive parsing & LL(1)</li>
+          <li>FIRST and FOLLOW sets</li>
+          <li>Grammar transformations</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card card-teal">
+        <strong>🔧 Bottom-Up Techniques</strong>
+        <ul style="margin-top:6px; font-size:12px;">
+          <li>Shift-reduce parsing</li>
+          <li>LR parsing (SLR, LALR, CLR)</li>
+          <li>Parsing tables and actions</li>
+          <li>Handle identification</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="note-box tip">
+    <strong>💡 Study Tip:</strong> Focus on understanding parse tree construction and the difference between top-down and bottom-up approaches. Practice grammar transformations and table construction.
+  </div>
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Table of Contents</span><span>Page 2 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 3: INTRODUCTION -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 1</div>
+      <h1 class="section-title">Introduction to Syntax Analysis</h1>
+    </div>
+    <div class="page-number">Page 3</div>
+  </div>
+
+  <h2 class="sec2">Definition</h2>
+  <div class="card card-blue">
+    <strong>Syntax Analyzer (Parser):</strong> The second phase of a compiler that takes a stream of tokens from the lexical analyzer and builds a parse tree (or abstract syntax tree) representing the grammatical structure of the program according to the language's grammar rules.
+  </div>
+
+  <h2 class="sec2">Role of Parser in Compiler</h2>
+  <p>The parser performs the following critical functions:</p>
+  <ul>
+    <li><strong>Structure Verification:</strong> Checks if token sequence follows grammar rules</li>
+    <li><strong>Parse Tree Construction:</strong> Builds hierarchical representation of program structure</li>
+    <li><strong>Error Detection:</strong> Identifies syntax errors and reports them with meaningful messages</li>
+    <li><strong>Error Recovery:</strong> Attempts to continue parsing after detecting errors</li>
+    <li><strong>Symbol Table Updates:</strong> Communicates with symbol table for identifier management</li>
+  </ul>
+
+  <h2 class="sec2">Compiler Phase Interaction</h2>
+  <div class="diagram-box">
+    <div class="flow-step">Source Code</div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">Lexical Analyzer</div>
+    <div class="flow-arrow">↓</div>
+    <div style="margin:8px 0; font-size:11px; color:var(--text-muted);">Token Stream</div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step" style="background:var(--primary-light);">Parser (Syntax Analyzer)</div>
+    <div class="flow-arrow">↓</div>
+    <div style="margin:8px 0; font-size:11px; color:var(--text-muted);">Parse Tree / AST</div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">Semantic Analyzer</div>
+  </div>
+
+  <h2 class="sec2">Parser-Lexer Relationship</h2>
+  <div class="two-col">
+    <div class="card card-teal">
+      <h3 class="sec3">Lexical Analyzer</h3>
+      <ul style="font-size:12px; margin-top:6px;">
+        <li>Reads characters</li>
+        <li>Produces tokens</li>
+        <li>Deals with lexical structure</li>
+        <li>Uses regular expressions</li>
+        <li>Example: <code>&lt;ID, "x"&gt;</code></li>
+      </ul>
+    </div>
+    <div class="card card-purple">
+      <h3 class="sec3">Syntax Analyzer</h3>
+      <ul style="font-size:12px; margin-top:6px;">
+        <li>Reads tokens</li>
+        <li>Produces parse tree</li>
+        <li>Deals with grammatical structure</li>
+        <li>Uses context-free grammars</li>
+        <li>Example: <code>E → E + T</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="sec2">Importance of Syntax Checking</h2>
+  <div class="card card-amber">
+    <p style="font-size:12px;"><strong>Why is syntax analysis critical?</strong></p>
+    <ol style="font-size:12px; margin-top:6px;">
+      <li><strong>Correctness:</strong> Ensures program follows language rules before execution</li>
+      <li><strong>Structure:</strong> Reveals program structure needed for semantic analysis and code generation</li>
+      <li><strong>Early Error Detection:</strong> Catches structural errors before runtime</li>
+      <li><strong>Meaningful Messages:</strong> Provides clear error messages to programmers</li>
+      <li><strong>Foundation:</strong> Parse tree is essential for all subsequent compiler phases</li>
+    </ol>
+  </div>
+
+  <h2 class="sec2">Example: Token Stream to Parse Tree</h2>
+  <div class="code-block">
+<span class="comment">// Source Code</span>
+x = y + z * <span class="number">2</span>
+
+<span class="comment">// Token Stream from Lexer</span>
+<span class="operator">&lt;</span>ID,x<span class="operator">&gt;</span> <span class="operator">&lt;</span>ASSIGN<span class="operator">&gt;</span> <span class="operator">&lt;</span>ID,y<span class="operator">&gt;</span> <span class="operator">&lt;</span>PLUS<span class="operator">&gt;</span> <span class="operator">&lt;</span>ID,z<span class="operator">&gt;</span> <span class="operator">&lt;</span>MULT<span class="operator">&gt;</span> <span class="operator">&lt;</span>NUM,<span class="number">2</span><span class="operator">&gt;</span>
+
+<span class="comment">// Parser builds parse tree showing operator precedence</span>
+  </div>
+
+  <h2 class="sec2">Types of Parsers</h2>
+  <table>
+    <tr>
+      <th>Type</th>
+      <th>Direction</th>
+      <th>Technique</th>
+    </tr>
+    <tr>
+      <td><strong>Top-Down</strong></td>
+      <td>Root → Leaves</td>
+      <td>Recursive Descent, LL(1)</td>
+    </tr>
+    <tr>
+      <td><strong>Bottom-Up</strong></td>
+      <td>Leaves → Root</td>
+      <td>LR, SLR, LALR, CLR</td>
+    </tr>
+  </table>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Point:</strong> Syntax analysis uses Context-Free Grammars (CFG) because they are powerful enough to describe most programming language constructs, yet simple enough to parse efficiently.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Introduction</span><span>Page 3 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 4: CONTEXT-FREE GRAMMARS -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 2</div>
+      <h1 class="section-title">Context-Free Grammars (CFG)</h1>
+    </div>
+    <div class="page-number">Page 4</div>
+  </div>
+
+  <h2 class="sec2">Definition</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;">A <strong>Context-Free Grammar (CFG)</strong> is a formal notation for specifying the syntax of a programming language. It consists of a set of recursive rules that describe how strings in the language can be formed.</p>
+  </div>
+
+  <h2 class="sec2">Components of CFG</h2>
+  <div class="card card-teal">
+    <p style="font-size:13px; font-weight:600; margin-bottom:8px;">A grammar G is defined as: <code>G = (V, T, P, S)</code></p>
+    <table style="margin-top:8px; font-size:12px;">
+      <tr>
+        <th>Symbol</th>
+        <th>Component</th>
+        <th>Description</th>
+        <th>Example</th>
+      </tr>
+      <tr>
+        <td><strong>V</strong></td>
+        <td>Non-terminals</td>
+        <td>Variables that can be replaced</td>
+        <td>E, T, F</td>
+      </tr>
+      <tr>
+        <td><strong>T</strong></td>
+        <td>Terminals</td>
+        <td>Actual symbols in the language</td>
+        <td>+, *, id, (</td>
+      </tr>
+      <tr>
+        <td><strong>P</strong></td>
+        <td>Productions</td>
+        <td>Rewrite rules</td>
+        <td>E → E + T</td>
+      </tr>
+      <tr>
+        <td><strong>S</strong></td>
+        <td>Start Symbol</td>
+        <td>Initial non-terminal</td>
+        <td>E</td>
+      </tr>
+    </table>
+  </div>
+
+  <h2 class="sec2">Grammar Example: Arithmetic Expressions</h2>
+  <div class="code-block">
+<span class="comment">// Grammar for arithmetic expressions</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">T</span>    <span class="comment">// Expression with addition</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">T</span>        <span class="comment">// Expression is a term</span>
+<span class="nt">T</span> <span class="operator">→</span> <span class="nt">T</span> <span class="operator">*</span> <span class="nt">F</span>    <span class="comment">// Term with multiplication</span>
+<span class="nt">T</span> <span class="operator">→</span> <span class="nt">F</span>        <span class="comment">// Term is a factor</span>
+<span class="nt">F</span> <span class="operator">→</span> (<span class="nt">E</span>)       <span class="comment">// Factor is parenthesized expression</span>
+<span class="nt">F</span> <span class="operator">→</span> <span class="keyword">id</span>       <span class="comment">// Factor is an identifier</span>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3 class="sec3">Non-terminals (V)</h3>
+      <div class="card card-purple">
+        <ul style="font-size:12px;">
+          <li><strong>E</strong> — Expression</li>
+          <li><strong>T</strong> — Term</li>
+          <li><strong>F</strong> — Factor</li>
+        </ul>
+        <p style="font-size:11.5px; margin-top:6px;">These are syntactic variables that represent sets of strings.</p>
+      </div>
+    </div>
+    <div>
+      <h3 class="sec3">Terminals (T)</h3>
+      <div class="card card-amber">
+        <ul style="font-size:12px;">
+          <li><code>+</code> — Plus operator</li>
+          <li><code>*</code> — Multiply operator</li>
+          <li><code>(</code>, <code>)</code> — Parentheses</li>
+          <li><code>id</code> — Identifier</li>
+        </ul>
+        <p style="font-size:11.5px; margin-top:6px;">These are the actual tokens from lexical analysis.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Production Rules</h2>
+  <div class="card card-green">
+    <p style="font-size:12px;"><strong>Production Format:</strong> <code>A → α</code></p>
+    <ul style="font-size:12px; margin-top:6px;">
+      <li><strong>A</strong> is a single non-terminal (left side)</li>
+      <li><strong>α</strong> is a string of terminals and/or non-terminals (right side)</li>
+      <li><strong>→</strong> means "can be rewritten as" or "produces"</li>
+      <li>Multiple alternatives can be written with <code>|</code>: <code>A → α | β</code></li>
+    </ul>
+  </div>
+
+  <h2 class="sec2">Example: Parsing "id + id * id"</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px; font-weight:600;">Step-by-step derivation:</p>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="nt">E</span> <span class="operator">⇒</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">T</span>              <span class="comment">// Apply E → E + T</span>
+  <span class="operator">⇒</span> <span class="nt">T</span> <span class="operator">+</span> <span class="nt">T</span>              <span class="comment">// Apply E → T</span>
+  <span class="operator">⇒</span> <span class="nt">F</span> <span class="operator">+</span> <span class="nt">T</span>              <span class="comment">// Apply T → F</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="nt">T</span>             <span class="comment">// Apply F → id</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="nt">T</span> <span class="operator">*</span> <span class="nt">F</span>          <span class="comment">// Apply T → T * F</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="nt">F</span> <span class="operator">*</span> <span class="nt">F</span>          <span class="comment">// Apply T → F</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="keyword">id</span> <span class="operator">*</span> <span class="nt">F</span>         <span class="comment">// Apply F → id</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="keyword">id</span> <span class="operator">*</span> <span class="keyword">id</span>        <span class="comment">// Apply F → id</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;">This grammar correctly captures that * has higher precedence than +</p>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Concept:</strong> In CFG, any substitution of a non-terminal is allowed regardless of context, hence "context-free". This makes CFGs more powerful than regular expressions but simpler than context-sensitive grammars.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Context-Free Grammars</span><span>Page 4 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 5: DERIVATIONS & PARSE TREES -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 3</div>
+      <h1 class="section-title">Derivations & Parse Trees</h1>
+    </div>
+    <div class="page-number">Page 5</div>
+  </div>
+
+  <h2 class="sec2">What is Derivation?</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;">A <strong>derivation</strong> is a sequence of production rule applications that transforms the start symbol into a string of terminals (a sentence in the language). Each step replaces one non-terminal with the right-hand side of a production.</p>
+  </div>
+
+  <h2 class="sec2">Types of Derivations</h2>
+  <div class="two-col">
+    <div class="card card-teal">
+      <h3 class="sec3">Leftmost Derivation</h3>
+      <p style="font-size:12px;">Always replace the <strong>leftmost non-terminal</strong> first.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// String: id + id</span>
+<span class="nt">E</span> <span class="operator">⇒</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">T</span>
+  <span class="operator">⇒</span> <span class="nt">T</span> <span class="operator">+</span> <span class="nt">T</span>
+  <span class="operator">⇒</span> <span class="nt">F</span> <span class="operator">+</span> <span class="nt">T</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="nt">T</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="nt">F</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="keyword">id</span>
+      </div>
+      <p style="font-size:11px; margin-top:4px;">Used in <strong>top-down parsing</strong></p>
+    </div>
+    <div class="card card-purple">
+      <h3 class="sec3">Rightmost Derivation</h3>
+      <p style="font-size:12px;">Always replace the <strong>rightmost non-terminal</strong> first.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// String: id + id</span>
+<span class="nt">E</span> <span class="operator">⇒</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">T</span>
+  <span class="operator">⇒</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">F</span>
+  <span class="operator">⇒</span> <span class="nt">E</span> <span class="operator">+</span> <span class="keyword">id</span>
+  <span class="operator">⇒</span> <span class="nt">T</span> <span class="operator">+</span> <span class="keyword">id</span>
+  <span class="operator">⇒</span> <span class="nt">F</span> <span class="operator">+</span> <span class="keyword">id</span>
+  <span class="operator">⇒</span> <span class="keyword">id</span> <span class="operator">+</span> <span class="keyword">id</span>
+      </div>
+      <p style="font-size:11px; margin-top:4px;">Used in <strong>bottom-up parsing</strong></p>
+    </div>
+  </div>
+
+  <h2 class="sec2">Parse Trees</h2>
+  <div class="card card-amber">
+    <p style="font-size:12px;">A <strong>parse tree</strong> (or concrete syntax tree) is a graphical representation of a derivation that shows the hierarchical structure of the derived string.</p>
+    <ul style="font-size:12px; margin-top:6px;">
+      <li><strong>Root:</strong> Start symbol (S or E)</li>
+      <li><strong>Internal Nodes:</strong> Non-terminals</li>
+      <li><strong>Leaves:</strong> Terminals (read left-to-right gives the input string)</li>
+      <li><strong>Parent-Child:</strong> Production rule application</li>
+    </ul>
+  </div>
+
+  <h2 class="sec2">Parse Tree Example: "id + id * id"</h2>
+  <div class="tree-diagram">
+<pre style="margin:0;">
+                    E
+                    |
+            --------|--------
+            |       |       |
+            E       +       T
+            |               |
+            T         ------|------
+            |         |     |     |
+            F         T     *     F
+            |         |           |
+           id         F          id
+                      |
+                     id
+</pre>
+  </div>
+  <p style="font-size:11.5px; text-align:center; color:var(--text-muted); margin-top:6px;">This tree shows that * is applied before + (correct precedence)</p>
+
+  <h2 class="sec2">Derivation vs Parse Tree</h2>
+  <table>
+    <tr>
+      <th>Aspect</th>
+      <th>Derivation</th>
+      <th>Parse Tree</th>
+    </tr>
+    <tr>
+      <td><strong>Representation</strong></td>
+      <td>Sequential list of steps</td>
+      <td>Hierarchical tree structure</td>
+    </tr>
+    <tr>
+      <td><strong>Order</strong></td>
+      <td>Shows order of rule application</td>
+      <td>Order-independent (structure only)</td>
+    </tr>
+    <tr>
+      <td><strong>Uniqueness</strong></td>
+      <td>Multiple derivations possible</td>
+      <td>Unique for unambiguous grammar</td>
+    </tr>
+    <tr>
+      <td><strong>Detail</strong></td>
+      <td>Shows each step explicitly</td>
+      <td>Shows final structure compactly</td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">Abstract Syntax Tree (AST)</h2>
+  <div class="card card-green">
+    <p style="font-size:12px;">An <strong>AST</strong> is a condensed form of parse tree that removes redundant information and focuses on semantic structure.</p>
+    <div class="two-col" style="margin-top:8px;">
+      <div>
+        <strong style="font-size:11.5px;">Parse Tree:</strong>
+        <ul style="font-size:11px; margin-top:4px;">
+          <li>Contains all non-terminals</li>
+          <li>Shows all production steps</li>
+          <li>More verbose</li>
+        </ul>
+      </div>
+      <div>
+        <strong style="font-size:11.5px;">Abstract Syntax Tree:</strong>
+        <ul style="font-size:11px; margin-top:4px;">
+          <li>Only essential nodes</li>
+          <li>Removes intermediate productions</li>
+          <li>More compact, easier to process</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="note-box tip">
+    <strong>💡 Important:</strong> Leftmost and rightmost derivations produce the same parse tree for unambiguous grammars, just in different orders. The parse tree captures the structure, not the derivation order.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Derivations & Parse Trees</span><span>Page 5 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 6: AMBIGUITY -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 4</div>
+      <h1 class="section-title">Ambiguity & Associativity</h1>
+    </div>
+    <div class="page-number">Page 6</div>
+  </div>
+
+  <h2 class="sec2">Ambiguous Grammar</h2>
+  <div class="card card-red">
+    <p style="font-size:12px; font-weight:600;">Definition:</p>
+    <p style="font-size:12px; margin-top:4px;">A grammar is <strong>ambiguous</strong> if there exists at least one string that has <strong>more than one parse tree</strong> (or equivalently, more than one leftmost/rightmost derivation).</p>
+  </div>
+
+  <h2 class="sec2">Example: Ambiguous Expression Grammar</h2>
+  <div class="code-block">
+<span class="comment">// Ambiguous grammar</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">E</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">E</span> <span class="operator">*</span> <span class="nt">E</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="keyword">id</span>
+  </div>
+
+  <h3 class="sec3">Problem: String "id + id * id" has TWO parse trees</h3>
+
+  <div class="two-col">
+    <div class="card card-amber">
+      <strong style="font-size:12px;">Parse Tree 1: (id + id) * id</strong>
+      <div class="tree-diagram" style="font-size:10px; margin-top:6px;">
+<pre style="margin:0;">
+        E
+        |
+    ----|----
+    |   |   |
+    E   *   E
+    |       |
+  --|--    id
+  | | |
+  E + E
+  |   |
+ id  id
+</pre>
+      </div>
+      <p style="font-size:11px; margin-top:4px;">Evaluates to: (3 + 5) * 2 = 16</p>
+    </div>
+    <div class="card card-purple">
+      <strong style="font-size:12px;">Parse Tree 2: id + (id * id)</strong>
+      <div class="tree-diagram" style="font-size:10px; margin-top:6px;">
+<pre style="margin:0;">
+        E
+        |
+    ----|----
+    |   |   |
+    E   +   E
+    |       |
+   id     --|--
+          | | |
+          E * E
+          |   |
+         id  id
+</pre>
+      </div>
+      <p style="font-size:11px; margin-top:4px;">Evaluates to: 3 + (5 * 2) = 13</p>
+    </div>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Problem:</strong> Two different parse trees mean two different meanings! This is unacceptable for programming languages where semantics must be unambiguous.
+  </div>
+
+  <h2 class="sec2">Operator Precedence</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;"><strong>Precedence</strong> determines which operator is evaluated first in an expression without parentheses.</p>
+    <table style="margin-top:8px; font-size:11.5px;">
+      <tr>
+        <th>Operator</th>
+        <th>Precedence</th>
+        <th>Example</th>
+      </tr>
+      <tr>
+        <td>Parentheses ( )</td>
+        <td>Highest (1)</td>
+        <td>(2 + 3) evaluated first</td>
+      </tr>
+      <tr>
+        <td>Exponentiation ^</td>
+        <td>High (2)</td>
+        <td>2 ^ 3 before multiplication</td>
+      </tr>
+      <tr>
+        <td>Multiplication *, Division /</td>
+        <td>Medium (3)</td>
+        <td>3 * 4 before addition</td>
+      </tr>
+      <tr>
+        <td>Addition +, Subtraction -</td>
+        <td>Low (4)</td>
+        <td>Evaluated last</td>
+      </tr>
+    </table>
+  </div>
+
+  <h2 class="sec2">Associativity</h2>
+  <div class="card card-teal">
+    <p style="font-size:12px;"><strong>Associativity</strong> determines evaluation order when operators have the same precedence.</p>
+  </div>
+
+  <table>
+    <tr>
+      <th>Operator</th>
+      <th>Associativity</th>
+      <th>Expression</th>
+      <th>Evaluation</th>
+    </tr>
+    <tr>
+      <td>+, -, *, /</td>
+      <td><strong>Left</strong></td>
+      <td>a - b - c</td>
+      <td>(a - b) - c</td>
+    </tr>
+    <tr>
+      <td>^, =</td>
+      <td><strong>Right</strong></td>
+      <td>a = b = c</td>
+      <td>a = (b = c)</td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">Resolving Ambiguity</h2>
+  <div class="card card-green">
+    <p style="font-size:12px; font-weight:600;">Strategy: Rewrite grammar to encode precedence and associativity</p>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="comment">// Unambiguous grammar (precedence: * > +)</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">T</span>    <span class="comment">// + has lower precedence</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">T</span>
+<span class="nt">T</span> <span class="operator">→</span> <span class="nt">T</span> <span class="operator">*</span> <span class="nt">F</span>    <span class="comment">// * has higher precedence</span>
+<span class="nt">T</span> <span class="operator">→</span> <span class="nt">F</span>
+<span class="nt">F</span> <span class="operator">→</span> (<span class="nt">E</span>)
+<span class="nt">F</span> <span class="operator">→</span> <span class="keyword">id</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Key Idea:</strong> Higher precedence operators appear lower in the grammar hierarchy.</p>
+  </div>
+
+  <h2 class="sec2">Dangling Else Problem</h2>
+  <div class="code-block">
+<span class="comment">// Ambiguous if-else grammar</span>
+<span class="nt">S</span> <span class="operator">→</span> <span class="keyword">if</span> <span class="nt">E</span> <span class="keyword">then</span> <span class="nt">S</span>
+<span class="nt">S</span> <span class="operator">→</span> <span class="keyword">if</span> <span class="nt">E</span> <span class="keyword">then</span> <span class="nt">S</span> <span class="keyword">else</span> <span class="nt">S</span>
+
+<span class="comment">// Ambiguous: which if does else match?</span>
+<span class="keyword">if</span> E1 <span class="keyword">then</span> <span class="keyword">if</span> E2 <span class="keyword">then</span> S1 <span class="keyword">else</span> S2
+  </div>
+  <p style="font-size:11.5px;"><strong>Convention:</strong> Match else with the closest unmatched if (most languages)</p>
+
+  <div class="note-box exam">
+    <strong>🎯 Exam Tip:</strong> To prove ambiguity, show two different parse trees for the same string. To resolve it, rewrite the grammar with proper precedence levels or add constraints.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Ambiguity & Associativity</span><span>Page 6 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 7: TOP-DOWN PARSING -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 5</div>
+      <h1 class="section-title">Top-Down Parsing</h1>
+    </div>
+    <div class="page-number">Page 7</div>
+  </div>
+
+  <h2 class="sec2">Definition</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;"><strong>Top-Down Parsing</strong> constructs the parse tree starting from the root (start symbol) and proceeding toward the leaves (terminals). It attempts to find a leftmost derivation for the input string.</p>
+  </div>
+
+  <h2 class="sec2">Concept</h2>
+  <div class="diagram-box">
+    <div style="font-size:12px; margin-bottom:12px;">
+      <strong>Direction:</strong> Root → Leaves (Start Symbol → Input String)
+    </div>
+    <div class="tree-diagram" style="font-size:11px;">
+<pre style="margin:0;">
+Start Symbol (E)
+       ↓
+  Expand using
+  productions
+       ↓
+   Intermediate
+   derivations
+       ↓
+  Terminal string
+   (input tokens)
+</pre>
+    </div>
+  </div>
+
+  <h2 class="sec2">Top-Down Parsing Methods</h2>
+  <div class="two-col">
+    <div class="card card-teal">
+      <h3 class="sec3">1. Recursive Descent</h3>
+      <ul style="font-size:12px; margin-top:6px;">
+        <li>Uses recursive procedures</li>
+        <li>One procedure per non-terminal</li>
+        <li>May require backtracking</li>
+        <li>Simple to implement manually</li>
+        <li>Suitable for small grammars</li>
+      </ul>
+    </div>
+    <div class="card card-purple">
+      <h3 class="sec3">2. Predictive Parsing</h3>
+      <ul style="font-size:12px; margin-top:6px;">
+        <li>Table-driven approach</li>
+        <li>No backtracking required</li>
+        <li>Uses FIRST and FOLLOW sets</li>
+        <li>Works for LL(1) grammars</li>
+        <li>More efficient than RD</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="sec2">Parsing Process Example</h2>
+  <div class="card card-amber">
+    <p style="font-size:12px; font-weight:600;">Grammar:</p>
+    <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">T</span> <span class="nt">E'</span>
+<span class="nt">E'</span> <span class="operator">→</span> <span class="operator">+</span> <span class="nt">T</span> <span class="nt">E'</span> | ε
+<span class="nt">T</span> <span class="operator">→</span> <span class="nt">F</span> <span class="nt">T'</span>
+<span class="nt">T'</span> <span class="operator">→</span> <span class="operator">*</span> <span class="nt">F</span> <span class="nt">T'</span> | ε
+<span class="nt">F</span> <span class="operator">→</span> (<span class="nt">E</span>) | <span class="keyword">id</span>
+    </div>
+    <p style="font-size:12px; font-weight:600; margin-top:8px;">Input: id + id</p>
+    <div class="code-block" style="margin-top:4px; font-size:10.5px;">
+<span class="number">1.</span> Start with <span class="nt">E</span>, match against input
+<span class="number">2.</span> <span class="nt">E</span> <span class="operator">→</span> <span class="nt">T</span> <span class="nt">E'</span>  <span class="comment">// Expand E</span>
+<span class="number">3.</span> <span class="nt">T</span> <span class="operator">→</span> <span class="nt">F</span> <span class="nt">T'</span>  <span class="comment">// Expand T</span>
+<span class="number">4.</span> <span class="nt">F</span> <span class="operator">→</span> <span class="keyword">id</span>     <span class="comment">// Match id with input</span>
+<span class="number">5.</span> <span class="nt">T'</span> <span class="operator">→</span> ε     <span class="comment">// No *, use ε</span>
+<span class="number">6.</span> <span class="nt">E'</span> <span class="operator">→</span> <span class="operator">+</span> <span class="nt">T</span> <span class="nt">E'</span> <span class="comment">// Match +, expand T</span>
+<span class="number">7.</span> <span class="nt">T</span> <span class="operator">→</span> <span class="nt">F</span> <span class="nt">T'</span>  <span class="comment">// Expand T again</span>
+<span class="number">8.</span> <span class="nt">F</span> <span class="operator">→</span> <span class="keyword">id</span>     <span class="comment">// Match second id</span>
+<span class="number">9.</span> <span class="nt">T'</span> <span class="operator">→</span> ε     <span class="comment">// No more operators</span>
+<span class="number">10.</span> <span class="nt">E'</span> <span class="operator">→</span> ε    <span class="comment">// End of input</span>
+    </div>
+  </div>
+
+  <h2 class="sec2">Advantages and Disadvantages</h2>
+  <table>
+    <tr>
+      <th>Advantages</th>
+      <th>Disadvantages</th>
+    </tr>
+    <tr>
+      <td>✓ Easier to understand and implement</td>
+      <td>✗ Cannot handle left-recursive grammars</td>
+    </tr>
+    <tr>
+      <td>✓ Error detection is straightforward</td>
+      <td>✗ May require backtracking (inefficient)</td>
+    </tr>
+    <tr>
+      <td>✓ Produces leftmost derivation naturally</td>
+      <td>✗ Works only for LL grammars (subset of CFG)</td>
+    </tr>
+    <tr>
+      <td>✓ Good error messages possible</td>
+      <td>✗ Less powerful than bottom-up parsers</td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">Requirements for Top-Down Parsing</h2>
+  <div class="card card-green">
+    <p style="font-size:12px; font-weight:600;">For efficient top-down parsing without backtracking:</p>
+    <ol style="font-size:12px; margin-top:6px;">
+      <li><strong>No Left Recursion:</strong> Grammar must not have productions like A → Aα</li>
+      <li><strong>Left Factored:</strong> Common prefixes should be eliminated</li>
+      <li><strong>LL(1) Property:</strong> Should be able to predict production using 1 lookahead token</li>
+      <li><strong>Deterministic:</strong> No ambiguity in choosing productions</li>
+    </ol>
+  </div>
+
+  <h2 class="sec2">Visual Comparison</h2>
+  <div class="two-col">
+    <div class="card card-blue">
+      <strong>Top-Down (LL)</strong>
+      <div style="margin-top:6px; font-size:11px;">
+        • Start: Root<br>
+        • End: Leaves<br>
+        • Direction: ↓<br>
+        • Build: Predictive<br>
+        • Derivation: Leftmost
+      </div>
+    </div>
+    <div class="card card-purple">
+      <strong>Bottom-Up (LR)</strong>
+      <div style="margin-top:6px; font-size:11px;">
+        • Start: Leaves<br>
+        • End: Root<br>
+        • Direction: ↑<br>
+        • Build: Shift-Reduce<br>
+        • Derivation: Rightmost (reverse)
+      </div>
+    </div>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Point:</strong> Top-down parsing is ideal for hand-written parsers and when you need clear error messages. However, it requires grammar transformations (left recursion elimination, left factoring) to work efficiently.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Top-Down Parsing</span><span>Page 7 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 8: RECURSIVE DESCENT -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 6</div>
+      <h1 class="section-title">Recursive Descent Parsing</h1>
+    </div>
+    <div class="page-number">Page 8</div>
+  </div>
+
+  <h2 class="sec2">Definition</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;"><strong>Recursive Descent Parsing</strong> is a top-down parsing technique that uses a set of recursive procedures to process the input. Each non-terminal in the grammar has a corresponding procedure.</p>
+  </div>
+
+  <h2 class="sec2">Key Concepts</h2>
+  <ul style="font-size:12px;">
+    <li><strong>One Procedure per Non-terminal:</strong> Each grammar non-terminal has its own function</li>
+    <li><strong>Recursive Calls:</strong> Procedures call each other based on production rules</li>
+    <li><strong>Lookahead:</strong> Examine next token to decide which production to use</li>
+    <li><strong>Backtracking:</strong> If a choice fails, try another production (inefficient)</li>
+  </ul>
+
+  <h2 class="sec2">Example Grammar (Without Left Recursion)</h2>
+  <div class="code-block">
+<span class="comment">// Grammar suitable for recursive descent</span>
+<span class="nt">E</span>  <span class="operator">→</span> <span class="nt">T</span> <span class="nt">E'</span>
+<span class="nt">E'</span> <span class="operator">→</span> <span class="operator">+</span> <span class="nt">T</span> <span class="nt">E'</span> | ε
+<span class="nt">T</span>  <span class="operator">→</span> <span class="nt">F</span> <span class="nt">T'</span>
+<span class="nt">T'</span> <span class="operator">→</span> <span class="operator">*</span> <span class="nt">F</span> <span class="nt">T'</span> | ε
+<span class="nt">F</span>  <span class="operator">→</span> (<span class="nt">E</span>) | <span class="keyword">id</span>
+  </div>
+
+  <h2 class="sec2">Recursive Descent Implementation</h2>
+  <div class="card card-teal">
+    <h3 class="sec3">Procedure for E</h3>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="keyword">procedure</span> E() {
+  T();        <span class="comment">// Call procedure for T</span>
+  E_prime();  <span class="comment">// Call procedure for E'</span>
+}
+    </div>
+  </div>
+
+  <div class="card card-purple">
+    <h3 class="sec3">Procedure for E'</h3>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="keyword">procedure</span> E_prime() {
+  <span class="keyword">if</span> (lookahead == <span class="string">'+'</span>) {
+    match(<span class="string">'+'</span>);  <span class="comment">// Consume + token</span>
+    T();           <span class="comment">// Parse T</span>
+    E_prime();     <span class="comment">// Recursively parse E'</span>
+  }
+  <span class="comment">// else: ε production, do nothing</span>
+}
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-amber">
+      <h3 class="sec3">Procedure for T</h3>
+      <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="keyword">procedure</span> T() {
+  F();
+  T_prime();
+}
+      </div>
+    </div>
+    <div class="card card-green">
+      <h3 class="sec3">Procedure for T'</h3>
+      <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="keyword">procedure</span> T_prime() {
+  <span class="keyword">if</span> (lookahead == <span class="string">'*'</span>) {
+    match(<span class="string">'*'</span>);
+    F();
+    T_prime();
+  }
+}
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-red">
+    <h3 class="sec3">Procedure for F</h3>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="keyword">procedure</span> F() {
+  <span class="keyword">if</span> (lookahead == <span class="string">'('</span>) {
+    match(<span class="string">'('</span>);
+    E();           <span class="comment">// Parse expression inside parentheses</span>
+    match(<span class="string">')'</span>);
+  }
+  <span class="keyword">else</span> <span class="keyword">if</span> (lookahead == ID) {
+    match(ID);     <span class="comment">// Match identifier</span>
+  }
+  <span class="keyword">else</span> {
+    error(<span class="string">"Syntax error"</span>);
+  }
+}
+    </div>
+  </div>
+
+  <h2 class="sec2">Helper Functions</h2>
+  <div class="code-block">
+<span class="comment">// Global variable for current token</span>
+Token lookahead;
+
+<span class="keyword">procedure</span> match(Token t) {
+  <span class="keyword">if</span> (lookahead == t) {
+    lookahead = getNextToken();  <span class="comment">// Get next token from lexer</span>
+  } <span class="keyword">else</span> {
+    error(<span class="string">"Unexpected token"</span>);
+  }
+}
+
+<span class="keyword">procedure</span> parse() {
+  lookahead = getNextToken();  <span class="comment">// Initialize with first token</span>
+  E();                          <span class="comment">// Start parsing from start symbol</span>
+  <span class="keyword">if</span> (lookahead != EOF) {
+    error(<span class="string">"Unexpected symbols after end of input"</span>);
+  }
+}
+  </div>
+
+  <h2 class="sec2">Backtracking Problem</h2>
+  <div class="card card-red">
+    <p style="font-size:12px; font-weight:600;">Issue with ambiguous production choices:</p>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="comment">// If grammar has:</span>
+<span class="nt">S</span> <span class="operator">→</span> <span class="keyword">ab</span> | <span class="keyword">ac</span>
+
+<span class="comment">// Parser must try first alternative</span>
+<span class="comment">// If it fails, backtrack and try second</span>
+<span class="comment">// This is INEFFICIENT!</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Solution:</strong> Transform grammar to be predictive (eliminate backtracking using left factoring and FIRST/FOLLOW sets)</p>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Limitations of Recursive Descent:</strong>
+    <ul style="margin-top:6px; font-size:12px;">
+      <li>Cannot handle left-recursive grammars directly (causes infinite recursion)</li>
+      <li>Backtracking can be very inefficient</li>
+      <li>Difficult to implement for complex grammars</li>
+      <li>Better approach: Predictive parsing with parsing table</li>
+    </ul>
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Recursive Descent Parsing</span><span>Page 8 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 9: LEFT RECURSION & LEFT FACTORING -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 7</div>
+      <h1 class="section-title">Left Recursion & Left Factoring</h1>
+    </div>
+    <div class="page-number">Page 9</div>
+  </div>
+
+  <h2 class="sec2">Left Recursion</h2>
+  <div class="card card-red">
+    <p style="font-size:12px; font-weight:600;">Definition:</p>
+    <p style="font-size:12px; margin-top:4px;">A grammar is <strong>left-recursive</strong> if it has a non-terminal A such that there exists a derivation A ⇒+ Aα for some string α.</p>
+    <div class="code-block" style="margin-top:8px; font-size:11.5px;">
+<span class="comment">// Direct left recursion</span>
+<span class="nt">A</span> <span class="operator">→</span> <span class="nt">A</span>α | β
+
+<span class="comment">// Indirect left recursion</span>
+<span class="nt">A</span> <span class="operator">→</span> <span class="nt">B</span>α
+<span class="nt">B</span> <span class="operator">→</span> <span class="nt">A</span>β
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Problem:</strong> Causes infinite loop in top-down parsers!</p>
+  </div>
+
+  <h2 class="sec2">Eliminating Direct Left Recursion</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px; font-weight:600;">Transformation Rule:</p>
+    <div class="two-col" style="margin-top:8px;">
+      <div>
+        <strong style="font-size:11.5px;">Before:</strong>
+        <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="nt">A</span> <span class="operator">→</span> <span class="nt">A</span>α₁ | <span class="nt">A</span>α₂ | ... | <span class="nt">A</span>αₘ
+<span class="nt">A</span> <span class="operator">→</span> β₁ | β₂ | ... | βₙ
+        </div>
+      </div>
+      <div>
+        <strong style="font-size:11.5px;">After:</strong>
+        <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="nt">A</span>  <span class="operator">→</span> β₁<span class="nt">A'</span> | β₂<span class="nt">A'</span> | ... | βₙ<span class="nt">A'</span>
+<span class="nt">A'</span> <span class="operator">→</span> α₁<span class="nt">A'</span> | α₂<span class="nt">A'</span> | ... | αₘ<span class="nt">A'</span> | ε
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Example: Arithmetic Expression Grammar</h2>
+  <div class="card card-teal">
+    <strong style="font-size:12px;">Original (Left-Recursive):</strong>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">T</span> | <span class="nt">T</span>
+<span class="nt">T</span> <span class="operator">→</span> <span class="nt">T</span> <span class="operator">*</span> <span class="nt">F</span> | <span class="nt">F</span>
+<span class="nt">F</span> <span class="operator">→</span> (<span class="nt">E</span>) | <span class="keyword">id</span>
+    </div>
+    <strong style="font-size:12px; margin-top:8px; display:block;">After Eliminating Left Recursion:</strong>
+    <div class="code-block" style="margin-top:6px; font-size:11.5px;">
+<span class="nt">E</span>  <span class="operator">→</span> <span class="nt">T</span> <span class="nt">E'</span>
+<span class="nt">E'</span> <span class="operator">→</span> <span class="operator">+</span> <span class="nt">T</span> <span class="nt">E'</span> | ε
+<span class="nt">T</span>  <span class="operator">→</span> <span class="nt">F</span> <span class="nt">T'</span>
+<span class="nt">T'</span> <span class="operator">→</span> <span class="operator">*</span> <span class="nt">F</span> <span class="nt">T'</span> | ε
+<span class="nt">F</span>  <span class="operator">→</span> (<span class="nt">E</span>) | <span class="keyword">id</span>
+    </div>
+  </div>
+
+  <h2 class="sec2">Step-by-Step Example</h2>
+  <div class="card card-purple">
+    <strong style="font-size:12px;">Original Production: E → E + T | T</strong>
+    <ol style="font-size:11.5px; margin-top:6px;">
+      <li>Identify: A = E, α = +T, β = T</li>
+      <li>Create: E → T E'</li>
+      <li>Create: E' → +T E' | ε</li>
+    </ol>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// Result matches: T + T + T + ... + T</span>
+<span class="nt">E</span>  derives T <span class="operator">+</span> T <span class="operator">+</span> T <span class="comment">// Same language!</span>
+    </div>
+  </div>
+
+  <h2 class="sec2">Left Factoring</h2>
+  <div class="card card-amber">
+    <p style="font-size:12px; font-weight:600;">Definition:</p>
+    <p style="font-size:12px; margin-top:4px;"><strong>Left factoring</strong> is a grammar transformation that eliminates common prefixes from productions, making the grammar suitable for predictive parsing.</p>
+    <div class="code-block" style="margin-top:8px; font-size:11.5px;">
+<span class="comment">// Problem: Common prefix α</span>
+<span class="nt">A</span> <span class="operator">→</span> αβ₁ | αβ₂
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Issue:</strong> Parser cannot decide which production to use until it sees beyond α</p>
+  </div>
+
+  <h2 class="sec2">Left Factoring Transformation</h2>
+  <div class="card card-green">
+    <div class="two-col">
+      <div>
+        <strong style="font-size:11.5px;">Before:</strong>
+        <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="nt">A</span> <span class="operator">→</span> αβ₁ | αβ₂ | αβ₃
+<span class="nt">A</span> <span class="operator">→</span> γ
+        </div>
+      </div>
+      <div>
+        <strong style="font-size:11.5px;">After:</strong>
+        <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="nt">A</span>  <span class="operator">→</span> α<span class="nt">A'</span> | γ
+<span class="nt">A'</span> <span class="operator">→</span> β₁ | β₂ | β₃
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Left Factoring Example</h2>
+  <div class="card card-blue">
+    <strong style="font-size:12px;">Original:</strong>
+    <div class="code-block" style="margin-top:4px; font-size:11.5px;">
+<span class="nt">S</span> <span class="operator">→</span> <span class="keyword">if</span> <span class="nt">E</span> <span class="keyword">then</span> <span class="nt">S</span> <span class="keyword">else</span> <span class="nt">S</span>
+<span class="nt">S</span> <span class="operator">→</span> <span class="keyword">if</span> <span class="nt">E</span> <span class="keyword">then</span> <span class="nt">S</span>
+    </div>
+    <strong style="font-size:12px; margin-top:8px; display:block;">After Left Factoring:</strong>
+    <div class="code-block" style="margin-top:4px; font-size:11.5px;">
+<span class="nt">S</span>  <span class="operator">→</span> <span class="keyword">if</span> <span class="nt">E</span> <span class="keyword">then</span> <span class="nt">S</span> <span class="nt">S'</span>
+<span class="nt">S'</span> <span class="operator">→</span> <span class="keyword">else</span> <span class="nt">S</span> | ε
+    </div>
+  </div>
+
+  <h2 class="sec2">Combined Example</h2>
+  <table style="font-size:11.5px;">
+    <tr>
+      <th>Original Grammar</th>
+      <th>After Transformation</th>
+    </tr>
+    <tr>
+      <td><code>A → Aab | Aac | bd | be</code></td>
+      <td>
+        1. Left factor: <code>A → Ab | b</code> where <code>b = a[b|c]</code> and <code>b = b[d|e]</code><br>
+        2. Eliminate left recursion
+      </td>
+    </tr>
+  </table>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Points:</strong>
+    <ul style="margin-top:6px; font-size:12px;">
+      <li>Always eliminate left recursion BEFORE left factoring</li>
+      <li>Both transformations preserve the language generated by the grammar</li>
+      <li>These are necessary for predictive (LL(1)) parsing</li>
+      <li>Indirect left recursion requires more complex elimination algorithms</li>
+    </ul>
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Grammar Transformations</span><span>Page 9 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 10: PREDICTIVE PARSING -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 8</div>
+      <h1 class="section-title">Predictive Parsing & LL(1)</h1>
+    </div>
+    <div class="page-number">Page 10</div>
+  </div>
+
+  <h2 class="sec2">Predictive Parser Concept</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;"><strong>Predictive parsing</strong> is a table-driven top-down parsing technique that uses FIRST and FOLLOW sets to determine which production to apply, without backtracking.</p>
+    <ul style="font-size:12px; margin-top:6px;">
+      <li><strong>Non-recursive:</strong> Uses explicit stack instead of recursion</li>
+      <li><strong>Table-driven:</strong> Uses parsing table to decide actions</li>
+      <li><strong>No backtracking:</strong> Each decision is deterministic</li>
+      <li><strong>LL(1):</strong> Left-to-right scan, Leftmost derivation, 1 lookahead symbol</li>
+    </ul>
+  </div>
+
+  <h2 class="sec2">FIRST Set</h2>
+  <div class="card card-teal">
+    <p style="font-size:12px; font-weight:600;">Definition:</p>
+    <p style="font-size:12px;">FIRST(α) is the set of terminals that can begin strings derived from α.</p>
+    <div style="margin-top:8px; font-size:11.5px;">
+      <strong>Rules for computing FIRST(X):</strong>
+      <ol style="margin-top:4px;">
+        <li>If X is terminal: FIRST(X) = {X}</li>
+        <li>If X → ε: add ε to FIRST(X)</li>
+        <li>If X → Y₁Y₂...Yₖ:
+          <ul style="margin-left:16px; margin-top:2px;">
+            <li>Add FIRST(Y₁) - {ε} to FIRST(X)</li>
+            <li>If Y₁ can derive ε, add FIRST(Y₂) - {ε}</li>
+            <li>Continue until Yᵢ cannot derive ε</li>
+            <li>If all Yᵢ can derive ε, add ε to FIRST(X)</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <h2 class="sec2">FIRST Set Example</h2>
+  <div class="code-block">
+<span class="comment">// Grammar</span>
+<span class="nt">E</span>  <span class="operator">→</span> <span class="nt">T</span> <span class="nt">E'</span>
+<span class="nt">E'</span> <span class="operator">→</span> <span class="operator">+</span> <span class="nt">T</span> <span class="nt">E'</span> | ε
+<span class="nt">T</span>  <span class="operator">→</span> <span class="nt">F</span> <span class="nt">T'</span>
+<span class="nt">T'</span> <span class="operator">→</span> <span class="operator">*</span> <span class="nt">F</span> <span class="nt">T'</span> | ε
+<span class="nt">F</span>  <span class="operator">→</span> (<span class="nt">E</span>) | <span class="keyword">id</span>
+
+<span class="comment">// Computing FIRST sets</span>
+FIRST(<span class="nt">F</span>)  = {(, <span class="keyword">id</span>}
+FIRST(<span class="nt">T'</span>) = {<span class="operator">*</span>, ε}
+FIRST(<span class="nt">T</span>)  = FIRST(<span class="nt">F</span>) = {(, <span class="keyword">id</span>}
+FIRST(<span class="nt">E'</span>) = {<span class="operator">+</span>, ε}
+FIRST(<span class="nt">E</span>)  = FIRST(<span class="nt">T</span>) = {(, <span class="keyword">id</span>}
+  </div>
+
+  <h2 class="sec2">FOLLOW Set</h2>
+  <div class="card card-purple">
+    <p style="font-size:12px; font-weight:600;">Definition:</p>
+    <p style="font-size:12px;">FOLLOW(A) is the set of terminals that can appear immediately to the right of A in some sentential form.</p>
+    <div style="margin-top:8px; font-size:11.5px;">
+      <strong>Rules for computing FOLLOW(A):</strong>
+      <ol style="margin-top:4px;">
+        <li>Place $ in FOLLOW(S) where S is start symbol</li>
+        <li>If A → αBβ: add FIRST(β) - {ε} to FOLLOW(B)</li>
+        <li>If A → αB or A → αBβ where ε ∈ FIRST(β): add FOLLOW(A) to FOLLOW(B)</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2 class="sec2">FOLLOW Set Example</h2>
+  <div class="code-block">
+<span class="comment">// Using same grammar</span>
+<span class="comment">// Step 1: FOLLOW(E) = {$} (start symbol)</span>
+
+<span class="comment">// Step 2: From E → T E'</span>
+FOLLOW(<span class="nt">T</span>) contains FIRST(<span class="nt">E'</span>) <span class="operator">-</span> {ε} = {<span class="operator">+</span>}
+Since ε ∈ FIRST(<span class="nt">E'</span>), FOLLOW(<span class="nt">T</span>) also contains FOLLOW(<span class="nt">E</span>)
+
+<span class="comment">// Final FOLLOW sets</span>
+FOLLOW(<span class="nt">E</span>)  = {$, )}
+FOLLOW(<span class="nt">E'</span>) = {$, )}
+FOLLOW(<span class="nt">T</span>)  = {<span class="operator">+</span>, $, )}
+FOLLOW(<span class="nt">T'</span>) = {<span class="operator">+</span>, $, )}
+FOLLOW(<span class="nt">F</span>)  = {<span class="operator">*</span>, <span class="operator">+</span>, $, )}
+  </code>
+
+  <h2 class="sec2">Predictive Parsing Table Construction</h2>
+  <div class="card card-amber">
+    <p style="font-size:12px; font-weight:600;">Algorithm:</p>
+    <ol style="font-size:12px; margin-top:6px;">
+      <li>For production A → α:
+        <ul style="margin-left:16px;">
+          <li>For each terminal <em>a</em> in FIRST(α), add A → α to M[A, a]</li>
+          <li>If ε ∈ FIRST(α), for each terminal <em>b</em> in FOLLOW(A), add A → α to M[A, b]</li>
+          <li>If ε ∈ FIRST(α) and $ ∈ FOLLOW(A), add A → α to M[A, $]</li>
+        </ul>
+      </li>
+      <li>Mark all undefined entries as error</li>
+    </ol>
+  </div>
+
+  <h2 class="sec2">Example Parsing Table</h2>
+  <table style="font-size:10.5px;">
+    <tr>
+      <th>Non-terminal</th>
+      <th>id</th>
+      <th>+</th>
+      <th>*</th>
+      <th>(</th>
+      <th>)</th>
+      <th>$</th>
+    </tr>
+    <tr>
+      <td><strong>E</strong></td>
+      <td>E → T E'</td>
+      <td></td>
+      <td></td>
+      <td>E → T E'</td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><strong>E'</strong></td>
+      <td></td>
+      <td>E' → +T E'</td>
+      <td></td>
+      <td></td>
+      <td>E' → ε</td>
+      <td>E' → ε</td>
+    </tr>
+    <tr>
+      <td><strong>T</strong></td>
+      <td>T → F T'</td>
+      <td></td>
+      <td></td>
+      <td>T → F T'</td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><strong>T'</strong></td>
+      <td></td>
+      <td>T' → ε</td>
+      <td>T' → *F T'</td>
+      <td></td>
+      <td>T' → ε</td>
+      <td>T' → ε</td>
+    </tr>
+    <tr>
+      <td><strong>F</strong></td>
+      <td>F → id</td>
+      <td></td>
+      <td></td>
+      <td>F → (E)</td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">LL(1) Grammar Conditions</h2>
+  <div class="card card-green">
+    <p style="font-size:12px;">A grammar is <strong>LL(1)</strong> if for each production A → α | β:</p>
+    <ol style="font-size:12px; margin-top:6px;">
+      <li>FIRST(α) ∩ FIRST(β) = ∅ (no common first terminals)</li>
+      <li>If ε ∈ FIRST(α), then FIRST(β) ∩ FOLLOW(A) = ∅</li>
+      <li>If ε ∈ FIRST(β), then FIRST(α) ∩ FOLLOW(A) = ∅</li>
+    </ol>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Simplified:</strong> No ambiguity in choosing which production to use based on one lookahead symbol.</p>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Point:</strong> Predictive parsing works ONLY for LL(1) grammars. The grammar must be unambiguous, non-left-recursive, and left-factored.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Predictive Parsing</span><span>Page 10 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 11: BOTTOM-UP PARSING -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 9</div>
+      <h1 class="section-title">Bottom-Up Parsing</h1>
+    </div>
+    <div class="page-number">Page 11</div>
+  </div>
+
+  <h2 class="sec2">Definition</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;"><strong>Bottom-Up Parsing</strong> constructs the parse tree starting from the leaves (input tokens) and proceeding toward the root (start symbol). It attempts to find a rightmost derivation in reverse.</p>
+  </div>
+
+  <h2 class="sec2">Key Concepts</h2>
+  <div class="diagram-box">
+    <div style="font-size:12px; margin-bottom:12px;">
+      <strong>Direction:</strong> Leaves → Root (Input String → Start Symbol)
+    </div>
+    <div class="tree-diagram" style="font-size:11px;">
+<pre style="margin:0;">
+Terminal string
+(input tokens)
+       ↑
+  Reduce using
+  productions
+       ↑
+   Intermediate
+   reductions
+       ↑
+  Start Symbol (E)
+</pre>
+    </div>
+  </div>
+
+  <h2 class="sec2">Shift-Reduce Parsing</h2>
+  <div class="card card-teal">
+    <p style="font-size:12px;">Bottom-up parsers use a <strong>stack</strong> and perform two main operations:</p>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-purple">
+      <h3 class="sec3">1. Shift</h3>
+      <p style="font-size:12px; margin-top:6px;">Push the next input symbol onto the stack.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+Stack: ... $
+Input: <span class="keyword">id</span> <span class="operator">+</span> <span class="keyword">id</span> $
+
+<span class="comment">→ Shift</span>
+
+Stack: ... $ <span class="keyword">id</span>
+Input: <span class="operator">+</span> <span class="keyword">id</span> $
+      </div>
+    </div>
+    <div class="card card-amber">
+      <h3 class="sec3">2. Reduce</h3>
+      <p style="font-size:12px; margin-top:6px;">Replace handle (right side of production) on stack with left side non-terminal.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+Stack: ... $ <span class="keyword">id</span>
+Input: <span class="operator">+</span> <span class="keyword">id</span> $
+
+<span class="comment">→ Reduce by F → id</span>
+
+Stack: ... $ <span class="nt">F</span>
+Input: <span class="operator">+</span> <span class="keyword">id</span> $
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Handle</h2>
+  <div class="card card-green">
+    <p style="font-size:12px;">A <strong>handle</strong> is a substring of the sentential form that matches the right side of a production and whose reduction represents one step in the reverse of a rightmost derivation.</p>
+    <p style="font-size:12px; margin-top:6px;"><strong>Key:</strong> Identifying the correct handle is crucial for bottom-up parsing.</p>
+  </div>
+
+  <h2 class="sec2">Parsing Example: "id + id"</h2>
+  <div class="code-block">
+<span class="comment">// Grammar</span>
+<span class="nt">E</span> <span class="operator">→</span> <span class="nt">E</span> <span class="operator">+</span> <span class="nt">T</span> | <span class="nt">T</span>
+<span class="nt">T</span> <span class="operator">→</span> <span class="keyword">id</span>
+  </div>
+
+  <table style="font-size:11.5px;">
+    <tr>
+      <th>Step</th>
+      <th>Stack</th>
+      <th>Input</th>
+      <th>Action</th>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>$</td>
+      <td>id + id $</td>
+      <td>Shift</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>$ id</td>
+      <td>+ id $</td>
+      <td>Reduce T → id</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>$ T</td>
+      <td>+ id $</td>
+      <td>Reduce E → T</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>$ E</td>
+      <td>+ id $</td>
+      <td>Shift</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>$ E +</td>
+      <td>id $</td>
+      <td>Shift</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>$ E + id</td>
+      <td>$</td>
+      <td>Reduce T → id</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>$ E + T</td>
+      <td>$</td>
+      <td>Reduce E → E + T</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>$ E</td>
+      <td>$</td>
+      <td>Accept</td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">Other Actions</h2>
+  <div class="two-col">
+    <div class="card card-red">
+      <h3 class="sec3">3. Accept</h3>
+      <p style="font-size:12px; margin-top:6px;">Parsing completes successfully when stack contains start symbol and input is empty.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+Stack: $ <span class="nt">E</span>
+Input: $
+Action: <strong>Accept</strong>
+      </div>
+    </div>
+    <div class="card card-red">
+      <h3 class="sec3">4. Error</h3>
+      <p style="font-size:12px; margin-top:6px;">No shift or reduce action is possible — syntax error detected.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+Stack: $ <span class="nt">E</span> <span class="operator">+</span> <span class="operator">+</span>
+Input: <span class="keyword">id</span> $
+Action: <strong>Error</strong>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Advantages of Bottom-Up Parsing</h2>
+  <table>
+    <tr>
+      <th>Advantage</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td><strong>More Powerful</strong></td>
+      <td>Can parse a larger class of grammars (LR vs LL)</td>
+    </tr>
+    <tr>
+      <td><strong>Handles Left Recursion</strong></td>
+      <td>No grammar transformation needed</td>
+    </tr>
+    <tr>
+      <td><strong>Earlier Error Detection</strong></td>
+      <td>Detects errors as soon as possible</td>
+    </tr>
+    <tr>
+      <td><strong>Widely Used</strong></td>
+      <td>Most parser generators (YACC, Bison) use LR parsing</td>
+    </tr>
+  </table>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Difference:</strong> Top-down starts with grammar rules and tries to match input; bottom-up starts with input and tries to build grammar structure. Bottom-up is more powerful but harder to implement by hand.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Bottom-Up Parsing</span><span>Page 11 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 12: LR PARSERS -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 10</div>
+      <h1 class="section-title">LR Parsing Techniques</h1>
+    </div>
+    <div class="page-number">Page 12</div>
+  </div>
+
+  <h2 class="sec2">LR Parsing Overview</h2>
+  <div class="card card-blue">
+    <p style="font-size:12px;"><strong>LR Parsing</strong> stands for Left-to-right scan, Rightmost derivation (in reverse). It is the most powerful shift-reduce parsing technique.</p>
+    <ul style="font-size:12px; margin-top:6px;">
+      <li><strong>L:</strong> Scans input from left to right</li>
+      <li><strong>R:</strong> Constructs rightmost derivation in reverse</li>
+      <li><strong>(k):</strong> Uses k lookahead symbols (usually k=1)</li>
+    </ul>
+  </div>
+
+  <h2 class="sec2">Types of LR Parsers</h2>
+  <table>
+    <tr>
+      <th>Parser Type</th>
+      <th>Full Name</th>
+      <th>Power</th>
+      <th>Table Size</th>
+    </tr>
+    <tr>
+      <td><strong>SLR</strong></td>
+      <td>Simple LR</td>
+      <td>Least powerful</td>
+      <td>Smallest</td>
+    </tr>
+    <tr>
+      <td><strong>LALR</strong></td>
+      <td>Look-Ahead LR</td>
+      <td>Medium</td>
+      <td>Medium (same as SLR)</td>
+    </tr>
+    <tr>
+      <td><strong>CLR</strong></td>
+      <td>Canonical LR</td>
+      <td>Most powerful</td>
+      <td>Largest</td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">Detailed Comparison</h2>
+  <table style="font-size:11.5px;">
+    <tr>
+      <th>Feature</th>
+      <th>SLR</th>
+      <th>LALR</th>
+      <th>CLR</th>
+    </tr>
+    <tr>
+      <td><strong>Power</strong></td>
+      <td>Least powerful, simplest</td>
+      <td>More powerful than SLR</td>
+      <td>Most powerful LR technique</td>
+    </tr>
+    <tr>
+      <td><strong>States</strong></td>
+      <td>Fewer states</td>
+      <td>Same as SLR</td>
+      <td>Many more states</td>
+    </tr>
+    <tr>
+      <td><strong>Lookahead</strong></td>
+      <td>Uses FOLLOW sets</td>
+      <td>Uses lookahead symbols</td>
+      <td>More precise lookahead</td>
+    </tr>
+    <tr>
+      <td><strong>Conflicts</strong></td>
+      <td>More shift-reduce conflicts</td>
+      <td>Fewer conflicts</td>
+      <td>Fewest conflicts</td>
+    </tr>
+    <tr>
+      <td><strong>Usage</strong></td>
+      <td>Easy to construct</td>
+      <td>Used in YACC/Bison</td>
+      <td>Rarely used (too large)</td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">LR Parsing Table Structure</h2>
+  <div class="card card-teal">
+    <p style="font-size:12px;">An LR parser uses two tables:</p>
+    <div class="two-col" style="margin-top:8px;">
+      <div>
+        <h3 class="sec3">ACTION Table</h3>
+        <ul style="font-size:11.5px;">
+          <li><strong>shift s:</strong> Push state s</li>
+          <li><strong>reduce r:</strong> Apply production r</li>
+          <li><strong>accept:</strong> Parsing complete</li>
+          <li><strong>error:</strong> Syntax error</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sec3">GOTO Table</h3>
+        <ul style="font-size:11.5px;">
+          <li>After reduction, determines next state</li>
+          <li>Indexed by [state, non-terminal]</li>
+          <li>Guides parser after reduce action</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Example LR Parsing Table</h2>
+  <div style="font-size:10px;">
+    <table>
+      <tr>
+        <th rowspan="2">State</th>
+        <th colspan="4">ACTION</th>
+        <th colspan="2">GOTO</th>
+      </tr>
+      <tr>
+        <th>id</th>
+        <th>+</th>
+        <th>*</th>
+        <th>$</th>
+        <th>E</th>
+        <th>T</th>
+      </tr>
+      <tr>
+        <td>0</td>
+        <td>s3</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>1</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td></td>
+        <td>s4</td>
+        <td></td>
+        <td>acc</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td></td>
+        <td>r2</td>
+        <td>s5</td>
+        <td>r2</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td></td>
+        <td>r4</td>
+        <td>r4</td>
+        <td>r4</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+  <p style="font-size:11px; margin-top:6px;"><strong>Legend:</strong> s3 = shift and push state 3, r2 = reduce by production 2, acc = accept</p>
+
+  <h2 class="sec2">LR Parsing Algorithm</h2>
+  <div class="code-block">
+Stack: [s₀]  <span class="comment">// Initial state</span>
+Input: input_string$
+
+<span class="keyword">while</span> (<span class="keyword">true</span>) {
+  state = top_of_stack;
+  symbol = current_input_symbol;
+  action = ACTION[state, symbol];
+  
+  <span class="keyword">if</span> (action == shift s) {
+    push(symbol);
+    push(s);
+    advance_input();
+  }
+  <span class="keyword">else</span> <span class="keyword">if</span> (action == reduce A <span class="operator">→</span> β) {
+    pop <span class="number">2</span> <span class="operator">*</span> |β| symbols;  <span class="comment">// Pop β and states</span>
+    state = top_of_stack;
+    push(A);
+    push(GOTO[state, A]);
+  }
+  <span class="keyword">else</span> <span class="keyword">if</span> (action == accept) {
+    <span class="keyword">return</span> <span class="string">"Success"</span>;
+  }
+  <span class="keyword">else</span> {
+    <span class="keyword">return</span> <span class="string">"Syntax Error"</span>;
+  }
+}
+  </div>
+
+  <h2 class="sec2">Conflicts in LR Parsing</h2>
+  <div class="two-col">
+    <div class="card card-amber">
+      <h3 class="sec3">Shift-Reduce Conflict</h3>
+      <p style="font-size:11.5px; margin-top:4px;">Parser doesn't know whether to shift next symbol or reduce current handle.</p>
+      <div style="margin-top:4px; font-size:10.5px;">
+        Example: Dangling else problem
+      </div>
+    </div>
+    <div class="card card-red">
+      <h3 class="sec3">Reduce-Reduce Conflict</h3>
+      <p style="font-size:11.5px; margin-top:4px;">Parser has multiple possible reductions for the same handle.</p>
+      <div style="margin-top:4px; font-size:10.5px;">
+        Usually indicates ambiguous grammar
+      </div>
+    </div>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Points:</strong>
+    <ul style="margin-top:6px; font-size:12px;">
+      <li>LR parsers are more powerful than LL parsers</li>
+      <li>They can parse almost all context-free grammars</li>
+      <li>LALR is most commonly used (YACC, Bison)</li>
+      <li>LR parsing tables are automatically generated by tools</li>
+      <li>Hand-construction is complex but follows systematic rules</li>
+    </ul>
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>LR Parsing</span><span>Page 12 / 13</span>
+  </div>
+</div>
+
+<!-- PAGE 13: EXAM QUICK REVISION -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Revision</div>
+      <h1 class="section-title">Exam Quick Revision</h1>
+    </div>
+    <div class="page-number">Page 13</div>
+  </div>
+
+  <div class="note-box exam">
+    <strong>🎯 Last-Minute Revision:</strong> Master these key concepts for exam success!
+  </div>
+
+  <h2 class="sec2">2-Mark Questions <span class="badge badge-red">★ High Priority</span></h2>
+  <div class="two-col">
+    <div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is syntax analysis?</div>
+        <div class="eq-answer">A: Second phase of compiler that checks if token stream follows grammar rules and builds parse tree.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Define CFG.</div>
+        <div class="eq-answer">A: Context-Free Grammar is a 4-tuple G = (V, T, P, S) where V=non-terminals, T=terminals, P=productions, S=start symbol.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is ambiguous grammar?</div>
+        <div class="eq-answer">A: A grammar where at least one string has more than one parse tree.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Define parse tree.</div>
+        <div class="eq-answer">A: Graphical representation of derivation showing hierarchical structure with root as start symbol and leaves as terminals.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is left recursion?</div>
+        <div class="eq-answer">A: A grammar has left recursion if there's a non-terminal A such that A ⇒+ Aα.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Define FIRST set.</div>
+        <div class="eq-answer">A: FIRST(α) is the set of terminals that begin strings derived from α.</div>
+      </div>
+    </div>
+    <div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Define FOLLOW set.</div>
+        <div class="eq-answer">A: FOLLOW(A) is the set of terminals that can appear immediately after A in some sentential form.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is a handle?</div>
+        <div class="eq-answer">A: A substring matching the right side of a production whose reduction is one step in reverse rightmost derivation.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is shift operation?</div>
+        <div class="eq-answer">A: In shift-reduce parsing, pushing the next input symbol onto the stack.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is reduce operation?</div>
+        <div class="eq-answer">A: Replacing handle on stack with left-hand side non-terminal of production.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What does LL(1) mean?</div>
+        <div class="eq-answer">A: Left-to-right scan, Leftmost derivation, 1 lookahead symbol.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What does LR mean?</div>
+        <div class="eq-answer">A: Left-to-right scan, Rightmost derivation (in reverse).</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">5-Mark Questions <span class="badge badge-amber">★ Medium Priority</span></h2>
+  <ul style="font-size:12px;">
+    <li>Explain the role of parser in compiler with diagram.</li>
+    <li>Define Context-Free Grammar with example.</li>
+    <li>What is ambiguous grammar? Show with example.</li>
+    <li>Explain leftmost and rightmost derivations.</li>
+    <li>Eliminate left recursion from a given grammar.</li>
+    <li>Perform left factoring on a given grammar.</li>
+    <li>Compute FIRST and FOLLOW sets for given grammar.</li>
+    <li>Explain recursive descent parsing with example.</li>
+    <li>Differentiate top-down and bottom-up parsing.</li>
+    <li>Explain shift-reduce parsing with example.</li>
+  </ul>
+
+  <h2 class="sec2">10-Mark Questions <span class="badge badge-blue">★ Important</span></h2>
+  <ul style="font-size:12px;">
+    <li>Explain phases of syntax analysis with parse tree construction for given expression.</li>
+    <li>Construct predictive parsing table for given grammar and parse an input string.</li>
+    <li>Explain recursive descent parsing. Write procedures for given grammar.</li>
+    <li>Eliminate left recursion and left factoring from given grammar, then verify it's LL(1).</li>
+    <li>Explain LR parsing with ACTION and GOTO tables. Parse a string step-by-step.</li>
+    <li>Compare SLR, LALR, and CLR parsers in detail.</li>
+    <li>Construct parse tree for ambiguous and unambiguous versions of expression grammar.</li>
+  </ul>
+
+  <h2 class="sec2">Key Formulas & Rules <span class="badge badge-green">★ Must Know</span></h2>
+  <div class="card card-amber" style="padding:10px 12px;">
+    <strong style="font-size:12px;">Left Recursion Elimination:</strong>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+A <span class="operator">→</span> Aα | β  ⇒  A <span class="operator">→</span> βA', A' <span class="operator">→</span> αA' | ε
+    </div>
+    <strong style="font-size:12px; margin-top:8px; display:block;">Left Factoring:</strong>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+A <span class="operator">→</span> αβ₁ | αβ₂  ⇒  A <span class="operator">→</span> αA', A' <span class="operator">→</span> β₁ | β₂
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:16px; padding:12px; background:var(--bg); border-radius:10px; border:1.5px solid var(--border);">
+    <div style="font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--primary-dark); margin-bottom:4px;">Module 3 — Syntax Analysis (CO3)</div>
+    <div style="font-size:12px; color:var(--text-muted);">B.E. Computer Science · Compiler Design · Complete Study Guide</div>
+    <div style="margin-top:8px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+      <span class="badge badge-blue">CFG & Parse Trees</span>
+      <span class="badge badge-teal">Top-Down Parsing</span>
+      <span class="badge badge-purple">Bottom-Up Parsing</span>
+      <span class="badge badge-amber">LL(1) & LR</span>
+      <span class="badge badge-green">Grammar Transformations</span>
+      <span class="badge badge-red">100% Exam Coverage</span>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Module 3 – Syntax Analysis (CO3)</span><span>Exam Quick Revision</span><span>End of Document</span>
+  </div>
+</div>
+
+</body>
+</html>

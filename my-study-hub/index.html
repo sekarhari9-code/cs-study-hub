@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS Engineering Study Hub</title>
+    
+    <!-- Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-base: #0a0f1c;
+            --text-main: #f8fafc;
+            --text-light: #94a3b8;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            
+            /* Generic Theme Colors for Subject Cards */
+            --theme-cyan: #38bdf8;
+            --theme-purple: #c084fc;
+            --theme-orange: #fb923c;
+            --theme-green: #4ade80;
+            --theme-pink: #f472b6;
+            --theme-yellow: #facc15;
+            --theme-red: #f87171;
+            --theme-indigo: #818cf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Dynamic Animated Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            background: #0a0f1c;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.4;
+            animation: float 25s infinite alternate ease-in-out;
+        }
+
+        .orb-1 {
+            width: 500px; height: 500px;
+            background: rgba(56, 189, 248, 0.2); /* Cyan */
+            top: -100px; left: -100px;
+        }
+
+        .orb-2 {
+            width: 600px; height: 600px;
+            background: rgba(192, 132, 252, 0.15); /* Purple */
+            bottom: -200px; right: -100px;
+            animation-delay: -5s;
+        }
+        
+        .orb-3 {
+            width: 400px; height: 400px;
+            background: rgba(251, 146, 60, 0.1); /* Orange */
+            top: 40%; left: 30%;
+            animation-duration: 30s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(60px, 60px) scale(1.1); }
+            100% { transform: translate(-40px, 90px) scale(0.9); }
+        }
+
+        /* Hero Section */
+        header {
+            padding: 100px 20px 60px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .hero-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -1.5px;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .hero-subtitle {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            max-width: 650px;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid Layout */
+        .container {
+            max-width: 1400px; /* Widened to fit more cards nicely */
+            margin: 0 auto 80px;
+            padding: 0 20px;
+            flex-grow: 1;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        .subject-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            perspective: 1000px;
+        }
+
+        /* Glassmorphism Cards */
+        .subject-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 35px 25px;
+            text-decoration: none;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+            
+            /* Initial state for JS staggered animation */
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .subject-card.show {
+            animation: cardEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardEnter {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hover Glow Effect */
+        .subject-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 20px;
+            background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+                        rgba(255,255,255,0.06), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .subject-card:hover::before { opacity: 1; }
+
+        /* Dynamic Theme Colors */
+        .theme-cyan { --card-theme: var(--theme-cyan); }
+        .theme-purple { --card-theme: var(--theme-purple); }
+        .theme-orange { --card-theme: var(--theme-orange); }
+        .theme-green { --card-theme: var(--theme-green); }
+        .theme-pink { --card-theme: var(--theme-pink); }
+        .theme-yellow { --card-theme: var(--theme-yellow); }
+        .theme-red { --card-theme: var(--theme-red); }
+        .theme-indigo { --card-theme: var(--theme-indigo); }
+
+        .subject-card:hover { 
+            border-color: rgba(255,255,255,0.2); 
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5); 
+        }
+
+        /* Override hover border for Active cards */
+        .subject-card:not(.disabled):hover {
+            border-color: var(--card-theme);
+            box-shadow: 0 10px 40px -10px var(--card-theme);
+        }
+
+        /* Card Content */
+        .card-content {
+            transform: translateZ(30px);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .icon-wrapper {
+            width: 55px;
+            height: 55px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            border: 1px solid var(--glass-border);
+            transition: transform 0.3s ease;
+            color: var(--card-theme);
+        }
+
+        .subject-card:hover .icon-wrapper {
+            transform: scale(1.1) translateZ(10px);
+        }
+
+        .subject-card h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.35rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .subject-card p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            flex-grow: 1;
+        }
+
+        /* Badges */
+        .status-badge {
+            align-self: flex-start;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--card-theme);
+            border: 1px solid var(--card-theme);
+        }
+
+        .status-upcoming {
+            background: rgba(255, 255, 255, 0.03);
+            color: #64748b;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Disabled state */
+        .subject-card.disabled {
+            cursor: not-allowed;
+        }
+        
+        .subject-card.disabled:hover {
+            transform: none !important;
+        }
+
+        .subject-card.disabled .icon-wrapper {
+            filter: grayscale(100%);
+            opacity: 0.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--glass-border);
+            position: relative;
+            z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title { font-size: 2.5rem; }
+            header { padding: 80px 20px 40px; }
+            .subject-card { transform: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <header>
+        <h1 class="hero-title">CS Engineering Hub</h1>
+        <p class="hero-subtitle">Comprehensive revision materials, cheat sheets, and syllabus guides for your cutting-edge B.E. (CSE) curriculum.</p>
+    </header>
+
+    <main class="container">
+        <div class="subject-grid">
+            
+            <!-- 1. Compiler Design (ACTIVE) -->
+            <a href="compiler-design/index.html" class="subject-card theme-cyan">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="cpu"></i></div>
+                    <h2>Compiler Design</h2>
+                    <p>Lexical analysis, syntax trees, CFG parsing, and code optimization algorithms.</p>
+                    <span class="status-badge status-active">Live - 4 Modules</span>
+                </div>
+            </a>
+
+            <!-- 2. Cryptography and Network Security -->
+            <a href="#" class="subject-card theme-red disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="shield-check"></i></div>
+                    <h2>Cryptography & Network Security</h2>
+                    <p>Encryption standards, public-key cryptography, hashes, and secure protocols.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 3. Distributed Computing -->
+            <a href="#" class="subject-card theme-indigo disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="server"></i></div>
+                    <h2>Distributed Computing</h2>
+                    <p>Distributed systems architectures, RPC, consensus algorithms, and fault tolerance.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 4. Deep Learning -->
+            <a href="#" class="subject-card theme-pink disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="brain"></i></div>
+                    <h2>Deep Learning</h2>
+                    <p>Neural networks, CNNs, RNNs, transformers, and advanced ML architectures.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 5. Cloud Product and Platform Engineering -->
+            <a href="#" class="subject-card theme-cyan disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="cloud"></i></div>
+                    <h2>Cloud Product & Platform Eng.</h2>
+                    <p>Cloud architecture, SaaS development life cycles, and platform deployment.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 6. AI Based Resource Management for Cloud -->
+            <a href="#" class="subject-card theme-purple disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="bot"></i></div>
+                    <h2>AI Resource Mgmt. for Cloud</h2>
+                    <p>AI-driven scaling, workload prediction, and intelligent cloud optimization.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 7. Mathematics for Machine Learning -->
+            <a href="#" class="subject-card theme-yellow disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="sigma"></i></div>
+                    <h2>Math for Machine Learning</h2>
+                    <p>Linear algebra, calculus, probability distributions, and optimization techniques.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 8. Network Management System -->
+            <a href="#" class="subject-card theme-green disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="activity"></i></div>
+                    <h2>Network Management System</h2>
+                    <p>SNMP, network monitoring, performance analysis, and fault management.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 9. Mobile AR Design and Development -->
+            <a href="#" class="subject-card theme-orange disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="smartphone"></i></div>
+                    <h2>Mobile AR Design & Dev</h2>
+                    <p>Augmented reality apps, 3D rendering engines, and mobile spatial computing.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 10. Internet of Things and its Applications -->
+            <a href="#" class="subject-card theme-green disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="wifi"></i></div>
+                    <h2>IoT & its Applications</h2>
+                    <p>IoT protocols, sensor networks, edge computing, and smart systems integration.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 11. Blockchain Security and Privacy -->
+            <a href="#" class="subject-card theme-purple disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="link"></i></div>
+                    <h2>Blockchain Security & Privacy</h2>
+                    <p>Distributed ledgers, smart contracts, consensus mechanisms, and cryptographic privacy.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 12. Identity and Access Management (IBM) -->
+            <a href="#" class="subject-card theme-indigo disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="fingerprint"></i></div>
+                    <h2>Identity & Access Mgmt. (IBM)</h2>
+                    <p>Authentication, authorization, SSO, and secure identity life cycles in enterprise.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 13. Mobile Backend Service -->
+            <a href="#" class="subject-card theme-pink disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="database"></i></div>
+                    <h2>Mobile Backend Service</h2>
+                    <p>MBaaS architectures, API gateways, database synchronization, and serverless logic.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+            <!-- 14. Programming Agentic AI -->
+            <a href="#" class="subject-card theme-yellow disabled">
+                <div class="card-content">
+                    <div class="icon-wrapper"><i data-lucide="sparkles"></i></div>
+                    <h2>Programming Agentic AI</h2>
+                    <p>Autonomous agents, LLM tool-use, goal-oriented AI, and multi-agent systems.</p>
+                    <span class="status-badge status-upcoming">Coming Soon</span>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 CS Engineering Study Hub. Hosted on GitHub Pages.</p>
+    </footer>
+
+    <!-- JavaScript for Animations -->
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const cards = document.querySelectorAll('.subject-card');
+            
+            // Staggered Entrance Animation (Reduced delay for 14 cards)
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('show');
+                }, index * 75); 
+            });
+
+            // 3D Tilt Hover Effect
+            cards.forEach(card => {
+                if(card.classList.contains('disabled')) return;
+
+                card.addEventListener("mousemove", (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    card.style.setProperty('--mouse-x', `${x}px`);
+                    card.style.setProperty('--mouse-y', `${y}px`);
+
+                    if (window.innerWidth > 768) {
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const rotateX = ((y - centerY) / centerY) * -10;
+                        const rotateY = ((x - centerX) / centerX) * 10;
+                        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                    }
+                });
+
+                card.addEventListener("mouseleave", () => {
+                    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
