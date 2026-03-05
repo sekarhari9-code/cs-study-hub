@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 1 – Compiler Structure (CO1) | Cheat Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2563EB;
+    --primary-light: #DBEAFE;
+    --primary-dark: #1E3A8A;
+    --teal: #0D9488;
+    --teal-light: #CCFBF1;
+    --accent: #7C3AED;
+    --accent-light: #EDE9FE;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --text-muted: #64748B;
+    --text-light: #94A3B8;
+    --page-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    --card-radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #CBD5E1;
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    background: var(--surface);
+    margin: 24px auto;
+    border-radius: 4px;
+    box-shadow: var(--page-shadow);
+    padding: 14mm 16mm 12mm 16mm;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary), var(--teal), var(--accent));
+  }
+  /* TITLE PAGE */
+  .title-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 297mm;
+    background: linear-gradient(145deg, #EFF6FF 0%, #F0FDFA 50%, #FAF5FF 100%);
+    padding: 20mm;
+  }
+  .title-badge {
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+  .title-main {
+    font-family: 'Playfair Display', serif;
+    font-size: 46px;
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--primary-dark);
+    margin-bottom: 12px;
+  }
+  .title-sub {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--teal);
+    margin-bottom: 6px;
+  }
+  .title-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 380px;
+    margin-bottom: 40px;
+  }
+  .title-divider {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--teal));
+    border-radius: 2px;
+    margin: 20px auto;
+  }
+  .title-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+    margin-top: 8px;
+  }
+  .meta-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .meta-card .mc-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+  }
+  .meta-card .mc-label {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .title-footer {
+    margin-top: 44px;
+    font-size: 11px;
+    color: var(--text-light);
+    letter-spacing: 0.5px;
+  }
+  /* TOC */
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 14px;
+  }
+  .toc-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    font-weight: 700;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .toc-text .toc-title { font-weight: 600; font-size: 12.5px; color: var(--text); }
+  .toc-text .toc-page  { font-size: 11px; color: var(--text-muted); }
+  /* PAGE HEADERS */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .page-number { font-size: 10px; color: var(--text-light); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+  .section-title-wrap .st-badge {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 2px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  h1.section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.2;
+  }
+  h2.sec2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin: 16px 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h2.sec2::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: linear-gradient(180deg, var(--primary), var(--teal));
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  h3.sec3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--teal);
+    margin: 12px 0 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  /* CARDS */
+  .card {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .card-blue   { border-left: 3px solid var(--primary); background: var(--primary-light); }
+  .card-teal   { border-left: 3px solid var(--teal);    background: var(--teal-light); }
+  .card-amber  { border-left: 3px solid var(--amber);   background: var(--amber-light); }
+  .card-red    { border-left: 3px solid var(--red);     background: var(--red-light); }
+  .card-purple { border-left: 3px solid var(--accent);  background: var(--accent-light); }
+  .card-green  { border-left: 3px solid var(--green);   background: var(--green-light); }
+  .note-box {
+    border-radius: 9px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 12.5px;
+  }
+  .note-box.info  { background: var(--primary-light); border-left: 3px solid var(--primary); color: var(--primary-dark); }
+  .note-box.warn  { background: var(--amber-light);   border-left: 3px solid var(--amber);   color: #78350F; }
+  .note-box.tip   { background: var(--teal-light);    border-left: 3px solid var(--teal);    color: #134E4A; }
+  .note-box.exam  { background: var(--red-light);     border-left: 3px solid var(--red);     color: #7F1D1D; }
+  .note-box strong { font-weight: 700; }
+  /* CODE BLOCKS */
+  .code-block {
+    background: #0F172A;
+    color: #E2E8F0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .code-block .kw  { color: #93C5FD; }
+  .code-block .str { color: #86EFAC; }
+  .code-block .cm  { color: #64748B; font-style: italic; }
+  .code-block .num { color: #FCA5A5; }
+  .code-block .fn  { color: #FDE68A; }
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
+  th {
+    background: var(--primary-dark);
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11.5px;
+    letter-spacing: 0.3px;
+  }
+  th:first-child { border-radius: 6px 0 0 0; }
+  th:last-child  { border-radius: 0 6px 0 0; }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--bg); }
+  tr:last-child td { border-bottom: none; }
+  .tbl-wrap { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; margin: 10px 0; }
+  /* LISTS */
+  ul, ol { padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  /* ANALYSIS-SYNTHESIS */
+  .as-diagram {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 8px;
+    align-items: start;
+    margin: 10px 0;
+  }
+  .as-col { border-radius: 10px; padding: 10px 12px; border: 1.5px solid; }
+  .as-col.analysis  { border-color: #BFDBFE; background: #EFF6FF; }
+  .as-col.synthesis { border-color: #BBF7D0; background: #F0FDF4; }
+  .as-col h4 { font-weight: 700; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .as-col.analysis h4  { color: var(--primary); }
+  .as-col.synthesis h4 { color: var(--green); }
+  .as-center { display: flex; align-items: center; justify-content: center; padding-top: 30px; font-size: 22px; color: var(--text-muted); }
+  /* PHASE COLORS */
+  .ph-src { background: #F1F5F9; color: #334155; border: 1.5px solid #CBD5E1; }
+  .ph-out { background: #1E293B; color: #E2E8F0; border: 1.5px solid #475569; }
+  .ph-lex { background: #DBEAFE; color: #1E40AF; border: 1.5px solid #BFDBFE; }
+  .ph-syn { background: #EDE9FE; color: #5B21B6; border: 1.5px solid #DDD6FE; }
+  .ph-sem { background: #CCFBF1; color: #115E59; border: 1.5px solid #99F6E4; }
+  .ph-icg { background: #FEF3C7; color: #78350F; border: 1.5px solid #FDE68A; }
+  .ph-opt { background: #FEE2E2; color: #7F1D1D; border: 1.5px solid #FECACA; }
+  .ph-cg  { background: #DCFCE7; color: #14532D; border: 1.5px solid #BBF7D0; }
+  .phase-box { width: 100%; max-width: 480px; border-radius: 8px; padding: 8px 16px; text-align: center; font-weight: 600; font-size: 12.5px; }
+  /* TOOL GRID */
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .tool-card { border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 12px; background: var(--bg); }
+  .tool-card .tc-name { font-weight: 700; font-size: 12.5px; color: var(--primary-dark); }
+  .tool-card .tc-full { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .tool-card .tc-desc { font-size: 11.5px; color: var(--text); }
+  /* EXAM SECTION */
+  .exam-q { border: 1.5px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+  .exam-q .eq-question { background: var(--primary-dark); color: white; padding: 7px 12px; font-weight: 600; font-size: 12.5px; }
+  .exam-q .eq-answer   { background: var(--bg); padding: 8px 12px; font-size: 12px; color: var(--text); }
+  /* DEFINITION GRID */
+  .def-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .def-card { border-radius: 8px; border: 1.5px solid var(--border); padding: 9px 12px; background: var(--bg); }
+  .def-card .dc-term { font-weight: 700; color: var(--primary); font-size: 12.5px; margin-bottom: 3px; }
+  .def-card .dc-def  { font-size: 12px; color: var(--text); }
+  /* WORKFLOW */
+  .workflow-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .wf-step { background: white; border: 1.5px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: var(--text); white-space: nowrap; }
+  .wf-step.src { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-light); }
+  .wf-step.out { border-color: var(--green); color: #14532D; background: var(--green-light); }
+  .wf-arrow { color: var(--text-muted); font-size: 14px; font-weight: 700; }
+  .wf-io { font-size: 10px; color: var(--text-muted); background: white; border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; }
+  /* SUMMARY */
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+  .sum-card { border-radius: 9px; padding: 10px 12px; border: 1.5px solid; }
+  .sum-card .sc-title { font-weight: 700; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+  .sum-card .sc-body { font-size: 11.5px; }
+  .sum-card ul { padding-left: 14px; }
+  .sum-card li { margin-bottom: 2px; }
+  /* TWO/THREE COL */
+  .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  /* BADGES */
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10.5px; font-weight: 600; vertical-align: middle; }
+  .badge-blue   { background: var(--primary-light); color: var(--primary-dark); }
+  .badge-teal   { background: var(--teal-light);    color: #115E59; }
+  .badge-amber  { background: var(--amber-light);   color: #78350F; }
+  .badge-red    { background: var(--red-light);     color: var(--red); }
+  .badge-purple { background: var(--accent-light);  color: #5B21B6; }
+  .badge-green  { background: var(--green-light);   color: #14532D; }
+  /* FOOTER */
+  .page-footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 16mm;
+    right: 16mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-light);
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+  }
+  @media print {
+    body { background: white; }
+    .page { margin: 0; box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+  p { margin-bottom: 6px; }
+  strong { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: TITLE -->
+<div class="page title-page">
+  <div class="title-badge">B.E. Computer Science · Compiler Design</div>
+  <div class="title-main">Compiler<br>Structure</div>
+  <div class="title-sub">Module 1 — CO1 Cheat Sheet</div>
+  <div class="title-divider"></div>
+  <div class="title-desc">A complete revision guide covering all exam-relevant topics with diagrams, examples, and key definitions.</div>
+  <div class="title-meta-grid">
+    <div class="meta-card"><div class="mc-num">6</div><div class="mc-label">Compiler Phases</div></div>
+    <div class="meta-card"><div class="mc-num">10</div><div class="mc-label">Pages of Content</div></div>
+    <div class="meta-card"><div class="mc-num">40+</div><div class="mc-label">Key Concepts</div></div>
+  </div>
+  <div class="title-footer">Module 1 · Compiler Structure (CO1) · Academic Cheat Sheet</div>
+</div>
+
+<!-- PAGE 2: TABLE OF CONTENTS -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Navigation</div>
+      <h1 class="section-title">Table of Contents</h1>
+    </div>
+    <div class="page-number">Page 2 of 10</div>
+  </div>
+  <div class="toc-grid">
+    <div class="toc-item">
+      <div class="toc-num">3</div>
+      <div class="toc-text"><div class="toc-title">Compiler Overview</div><div class="toc-page">Definition · Role · HLL vs Machine · Compiler vs Interpreter vs Assembler</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">4</div>
+      <div class="toc-text"><div class="toc-title">Analysis–Synthesis Model</div><div class="toc-page">Analysis Phase · Synthesis Phase · Relationship · Diagram</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">5</div>
+      <div class="toc-text"><div class="toc-title">Phases of a Compiler (1–3)</div><div class="toc-page">Lexical Analysis · Syntax Analysis · Semantic Analysis</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">6</div>
+      <div class="toc-text"><div class="toc-title">Phases of a Compiler (4–6)</div><div class="toc-page">Intermediate Code Gen · Code Optimization · Code Generation</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">7</div>
+      <div class="toc-text"><div class="toc-title">Compiler Architecture</div><div class="toc-page">Front End · Middle End · Back End · Symbol Table · Error Handling</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">8</div>
+      <div class="toc-text"><div class="toc-title">Tool-Based Approach</div><div class="toc-page">Compiler-generating tools · Benefits · Examples · Automation</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">9</div>
+      <div class="toc-text"><div class="toc-title">Compiler Workflow &amp; Definitions</div><div class="toc-page">Program flow · Data flow · Important definitions</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">10</div>
+      <div class="toc-text"><div class="toc-title">Key Differences</div><div class="toc-page">Compiler vs Interpreter · Analysis vs Synthesis · Front End vs Back End</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">11</div>
+      <div class="toc-text"><div class="toc-title">Exam Quick Revision</div><div class="toc-page">Important points · 2-mark answers · Typical exam questions</div></div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">12</div>
+      <div class="toc-text"><div class="toc-title">Summary Page</div><div class="toc-page">Final quick revision notes for all topics</div></div>
+    </div>
+  </div>
+  <div class="note-box info" style="margin-top:16px;">
+    <strong>📌 How to use this cheat sheet:</strong> Each page covers one major topic. Highlighted boxes mark exam notes. Code blocks show transformation examples. Tables provide quick comparisons.
+  </div>
+  <div class="note-box tip" style="margin-top:10px;">
+    <strong>💡 Study Tip:</strong> Start from the Phases (Pages 5–6) as they are most heavily tested. Then review Key Differences (Page 10) before your exam.
+  </div>
+  <div style="margin-top:18px; padding:14px 16px; background:var(--bg); border-radius:10px; border:1.5px solid var(--border);">
+    <h3 class="sec3" style="margin-top:0;">Legend</h3>
+    <div class="three-col" style="margin-top:8px;">
+      <div style="font-size:12px; display:flex; align-items:center; gap:6px;"><span class="badge badge-red">★ Exam Hot</span> Frequently tested</div>
+      <div style="font-size:12px; display:flex; align-items:center; gap:6px;"><span class="badge badge-teal">Def</span> Key definition</div>
+      <div style="font-size:12px; display:flex; align-items:center; gap:6px;"><span class="badge badge-amber">Note</span> Important note</div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Table of Contents</span><span>Page 2 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 3: COMPILER OVERVIEW -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 1</div>
+      <h1 class="section-title">Compiler Overview</h1>
+    </div>
+    <div class="page-number">Page 3 of 10</div>
+  </div>
+  <div class="two-col">
+    <div>
+      <h2 class="sec2">Definition</h2>
+      <div class="card card-blue">
+        <strong>A compiler</strong> is a special program that translates source code written in a <em>high-level language (HLL)</em> into an equivalent program in a <em>target language</em> (usually machine code or assembly), while reporting errors found during translation.
+      </div>
+      <h2 class="sec2">Role of Compilers</h2>
+      <ul>
+        <li>Bridge between HLL and hardware (machine code)</li>
+        <li>Enable programmer productivity using readable syntax</li>
+        <li>Perform <strong>error detection</strong> (syntax, semantic errors)</li>
+        <li>Optimize generated code for speed/memory</li>
+        <li>Allow platform-independent programming</li>
+        <li>Enable modular software development</li>
+      </ul>
+      <h2 class="sec2">HLL → Machine Language</h2>
+      <div class="code-block">
+<span class="cm">// High-Level Language (C)</span>
+<span class="kw">int</span> a = 5 + 3 * 2;
+
+<span class="cm">// Assembly (x86)</span>
+<span class="fn">MOV</span>  EBX, <span class="num">3</span>
+<span class="fn">IMUL</span> EBX, <span class="num">2</span>
+<span class="fn">ADD</span>  EBX, <span class="num">5</span>
+<span class="fn">MOV</span>  [a], EBX
+
+<span class="cm">// Machine Code (Binary)</span>
+<span class="str">10111011 00000011 ...</span>
+      </div>
+    </div>
+    <div>
+      <h2 class="sec2">Compiler vs Interpreter vs Assembler <span class="badge badge-red">★</span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <tr><th>Feature</th><th>Compiler</th><th>Interpreter</th><th>Assembler</th></tr>
+          <tr><td><strong>Input</strong></td><td>HLL source</td><td>HLL source</td><td>Assembly code</td></tr>
+          <tr><td><strong>Output</strong></td><td>Machine / object file</td><td>Direct result</td><td>Machine code</td></tr>
+          <tr><td><strong>Translation</strong></td><td>Whole program</td><td>Line by line</td><td>Mnemonic→binary</td></tr>
+          <tr><td><strong>Speed</strong></td><td>Fast execution</td><td>Slow execution</td><td>Fast execution</td></tr>
+          <tr><td><strong>Error detect</strong></td><td>After full scan</td><td>Immediate</td><td>After full scan</td></tr>
+          <tr><td><strong>Memory</strong></td><td>More (object file)</td><td>Less</td><td>Less</td></tr>
+          <tr><td><strong>Examples</strong></td><td>GCC (C), javac</td><td>Python, Ruby</td><td>MASM, NASM</td></tr>
+        </table>
+      </div>
+      <div class="note-box warn" style="margin-top:8px;">
+        <strong>⚠️ Note:</strong> Java uses <em>both</em> — <code>javac</code> compiles to bytecode; JVM <em>interprets</em> bytecode. This is called a <strong>hybrid</strong> approach.
+      </div>
+      <h3 class="sec3">Types of Compilers</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px;">
+        <div class="card" style="padding:8px 10px;"><strong style="color:var(--primary);">Single-Pass</strong><br><span style="font-size:11.5px;">Processes source once. Fast but limited optimization.</span></div>
+        <div class="card" style="padding:8px 10px;"><strong style="color:var(--teal);">Multi-Pass</strong><br><span style="font-size:11.5px;">Multiple scans. Better error handling and optimization.</span></div>
+        <div class="card" style="padding:8px 10px;"><strong style="color:var(--accent);">Cross Compiler</strong><br><span style="font-size:11.5px;">Compiles for a different target platform.</span></div>
+        <div class="card" style="padding:8px 10px;"><strong style="color:var(--amber);">Just-In-Time (JIT)</strong><br><span style="font-size:11.5px;">Compiles at runtime. Used in Java/.NET.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Compiler Overview</span><span>Page 3 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 4: ANALYSIS-SYNTHESIS MODEL -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 2</div>
+      <h1 class="section-title">Analysis–Synthesis Model of Compilation</h1>
+    </div>
+    <div class="page-number">Page 4 of 10</div>
+  </div>
+  <div class="note-box info">
+    <strong>📖 Overview:</strong> Compilation is divided into two major conceptual halves — <strong>Analysis</strong> (understanding the source) and <strong>Synthesis</strong> (constructing the target). Together they represent the complete compilation process.
+  </div>
+  <div class="as-diagram" style="margin-top:14px;">
+    <div class="as-col analysis">
+      <h4>🔍 Analysis Phase <span class="badge badge-blue">Front End</span></h4>
+      <ul style="font-size:12px;">
+        <li>Reads and understands source code</li>
+        <li>Breaks it into constituent pieces</li>
+        <li>Imposes grammatical structure</li>
+        <li>Detects errors (lexical, syntax, semantic)</li>
+        <li>Collects info into symbol table</li>
+        <li>Creates <strong>Intermediate Representation (IR)</strong></li>
+      </ul>
+      <div style="margin-top:8px; font-size:11px; color:var(--primary);"><strong>Phases:</strong> Lexical → Syntax → Semantic</div>
+    </div>
+    <div class="as-center">→</div>
+    <div class="as-col synthesis">
+      <h4>🔨 Synthesis Phase <span class="badge badge-green">Back End</span></h4>
+      <ul style="font-size:12px;">
+        <li>Constructs the target program</li>
+        <li>Uses IR produced by analysis</li>
+        <li>Optimizes intermediate code</li>
+        <li>Generates target machine code</li>
+        <li>Manages registers and memory</li>
+        <li>Produces executable output</li>
+      </ul>
+      <div style="margin-top:8px; font-size:11px; color:var(--green);"><strong>Phases:</strong> ICG → Optimization → Code Gen</div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Relationship Between Analysis and Synthesis <span class="badge badge-red">★ Exam Hot</span></h2>
+  <div class="two-col">
+    <div>
+      <div class="tbl-wrap">
+        <table>
+          <tr><th>Aspect</th><th>Analysis</th><th>Synthesis</th></tr>
+          <tr><td>Also called</td><td>Front End</td><td>Back End</td></tr>
+          <tr><td>Deals with</td><td>Source language</td><td>Target language</td></tr>
+          <tr><td>Output</td><td>IR + Symbol Table</td><td>Machine code</td></tr>
+          <tr><td>Machine dependence</td><td>Independent</td><td>Dependent</td></tr>
+          <tr><td>Reuse</td><td>Shared across targets</td><td>Different per platform</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3 class="sec3">Full Diagram</h3>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+        <div class="phase-box ph-src">📄 Source Code</div>
+        <div style="text-align:center; font-size:10px; color:var(--text-muted);">↓</div>
+        <div style="background:#EFF6FF; border:2px solid #93C5FD; border-radius:10px; padding:8px; width:100%; max-width:480px; text-align:center;">
+          <div style="font-weight:700; font-size:11px; color:var(--primary); margin-bottom:5px; letter-spacing:1px;">ANALYSIS PHASE</div>
+          <div class="phase-box ph-lex" style="margin-bottom:3px;">Lexical Analysis</div>
+          <div class="phase-box ph-syn" style="margin:3px 0;">Syntax Analysis</div>
+          <div class="phase-box ph-sem">Semantic Analysis</div>
+        </div>
+        <div style="text-align:center; font-size:11px; color:var(--text-muted); padding:3px;">↓ Intermediate Representation (IR) ↓</div>
+        <div style="background:#F0FDF4; border:2px solid #86EFAC; border-radius:10px; padding:8px; width:100%; max-width:480px; text-align:center;">
+          <div style="font-weight:700; font-size:11px; color:var(--green); margin-bottom:5px; letter-spacing:1px;">SYNTHESIS PHASE</div>
+          <div class="phase-box ph-icg" style="margin-bottom:3px;">Intermediate Code Generation</div>
+          <div class="phase-box ph-opt" style="margin:3px 0;">Code Optimization</div>
+          <div class="phase-box ph-cg">Code Generation</div>
+        </div>
+        <div style="text-align:center; font-size:10px; color:var(--text-muted);">↓</div>
+        <div class="phase-box ph-out">💻 Target Machine Code</div>
+      </div>
+    </div>
+  </div>
+  <div class="note-box tip" style="margin-top:10px;">
+    <strong>💡 Key Insight:</strong> The IR acts as a <em>contract</em> between Analysis and Synthesis. This separation means the same front end works for multiple target architectures, and the same back end handles multiple source languages.
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Analysis–Synthesis Model</span><span>Page 4 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 5: PHASES 1-3 -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 3 · Part A</div>
+      <h1 class="section-title">Phases of a Compiler (1–3)</h1>
+    </div>
+    <div class="page-number">Page 5 of 10</div>
+  </div>
+  <div class="note-box exam" style="margin-bottom:12px;">
+    <strong>🎯 Exam Focus:</strong> The phases are the #1 most tested topic. Know Input → Output → Responsibilities → Example for each phase.
+  </div>
+
+  <!-- PHASE 1 -->
+  <div class="card card-blue" style="padding:12px 14px; margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+      <div style="flex:1; min-width:180px;">
+        <div style="font-weight:800; font-size:15px; color:var(--primary-dark);">Phase 1 — Lexical Analysis <span class="badge badge-red">★</span></div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">Also called: <em>Scanner / Tokenizer</em></div>
+        <div style="font-size:12.5px;"><strong>Input:</strong> Stream of characters (source code)</div>
+        <div style="font-size:12.5px;"><strong>Output:</strong> Stream of tokens</div>
+        <div style="font-size:12.5px;"><strong>Uses:</strong> Regular Expressions, Finite Automata (DFA/NFA)</div>
+        <h4 style="margin-top:6px; font-size:12px; color:var(--primary);">Responsibilities:</h4>
+        <ul style="font-size:12px;">
+          <li>Read source character by character</li>
+          <li>Group characters into meaningful <strong>lexemes</strong></li>
+          <li>Convert lexemes into tokens: &lt;token-type, attribute&gt;</li>
+          <li>Remove whitespace, comments, blank lines</li>
+          <li>Report invalid token errors</li>
+          <li>Interact with symbol table</li>
+        </ul>
+      </div>
+      <div style="min-width:220px;">
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:4px;">Example Transformation:</div>
+        <div class="code-block" style="font-size:11px; padding:8px 12px;">
+<span class="cm">Input:</span>  position = initial + rate * 60
+
+<span class="cm">Tokens output:</span>
+&lt;<span class="kw">id</span>,1&gt; &lt;<span class="str">=</span>&gt; &lt;<span class="kw">id</span>,2&gt; &lt;<span class="str">+</span>&gt; &lt;<span class="kw">id</span>,3&gt; &lt;<span class="str">*</span>&gt; &lt;<span class="num">60</span>&gt;
+
+<span class="cm">Token types:</span>
+<span class="kw">id</span>      → identifier
+<span class="str">+,-,*,=</span> → operators
+<span class="num">60</span>      → integer_literal
+        </div>
+        <div class="note-box info" style="font-size:11.5px; margin-top:6px; padding:7px 10px;">
+          <strong>Lexeme vs Token:</strong> "rate" is the <em>lexeme</em>; &lt;id,3&gt; is the <em>token</em>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="card card-purple" style="padding:12px 14px; margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+      <div style="flex:1; min-width:180px;">
+        <div style="font-weight:800; font-size:15px; color:#4C1D95;">Phase 2 — Syntax Analysis <span class="badge badge-red">★</span></div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">Also called: <em>Parser</em></div>
+        <div style="font-size:12.5px;"><strong>Input:</strong> Stream of tokens</div>
+        <div style="font-size:12.5px;"><strong>Output:</strong> Parse Tree / Abstract Syntax Tree (AST)</div>
+        <div style="font-size:12.5px;"><strong>Uses:</strong> Context-Free Grammar (CFG), Parsing algorithms</div>
+        <h4 style="margin-top:6px; font-size:12px; color:#6D28D9;">Responsibilities:</h4>
+        <ul style="font-size:12px;">
+          <li>Check token sequence against grammar rules</li>
+          <li>Detect syntax errors (missing semicolons, brackets)</li>
+          <li>Construct parse tree / AST</li>
+          <li>Types: Top-Down (LL) and Bottom-Up (LR) parsing</li>
+        </ul>
+      </div>
+      <div style="min-width:220px;">
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:4px;">Example Transformation:</div>
+        <div class="code-block" style="font-size:11px; padding:8px 12px;">
+<span class="cm">Input Tokens:</span>
+&lt;<span class="kw">id</span>,1&gt; &lt;<span class="str">=</span>&gt; &lt;<span class="kw">id</span>,2&gt; &lt;<span class="str">+</span>&gt; &lt;<span class="kw">id</span>,3&gt; &lt;<span class="str">*</span>&gt; &lt;<span class="num">60</span>&gt;
+
+<span class="cm">AST structure:</span>
+        <span class="str">assign</span>
+       /      \
+  <span class="kw">id(1)</span>       <span class="str">+</span>
+            /    \
+         <span class="kw">id(2)</span>    <span class="str">*</span>
+                /    \
+            <span class="kw">id(3)</span>   <span class="num">60</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 3 -->
+  <div class="card card-teal" style="padding:12px 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+      <div style="flex:1; min-width:180px;">
+        <div style="font-weight:800; font-size:15px; color:#134E4A;">Phase 3 — Semantic Analysis <span class="badge badge-red">★</span></div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">Also called: <em>Type Checker</em></div>
+        <div style="font-size:12.5px;"><strong>Input:</strong> AST + Symbol Table</div>
+        <div style="font-size:12.5px;"><strong>Output:</strong> Annotated AST / IR</div>
+        <div style="font-size:12.5px;"><strong>Uses:</strong> Attribute Grammar, Type system rules</div>
+        <h4 style="margin-top:6px; font-size:12px; color:var(--teal);">Responsibilities:</h4>
+        <ul style="font-size:12px;">
+          <li><strong>Type checking</strong> — ensure types are compatible</li>
+          <li><strong>Scope resolution</strong> — variables declared before use</li>
+          <li>Array bound checking (if static)</li>
+          <li>Function signature matching</li>
+          <li>Type coercion (implicit type conversion)</li>
+        </ul>
+      </div>
+      <div style="min-width:220px;">
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:4px;">Example Transformation:</div>
+        <div class="code-block" style="font-size:11px; padding:8px 12px;">
+<span class="cm">Input: position = initial + rate*60</span>
+
+<span class="cm">Checks performed:</span>
+<span class="cm">- id,1 (float) = id,2 (float)</span>
+<span class="cm">  + id,3 (float) * 60 (int)</span>
+
+<span class="cm">Type coercion added:</span>
+position = initial + rate * <span class="kw">inttofloat</span>(60)
+
+<span class="cm">Annotated AST: each node has type info</span>
+        </div>
+        <div class="note-box warn" style="font-size:11.5px; margin-top:6px; padding:7px 10px;">
+          <strong>Error example:</strong> Assigning a string to an int variable is caught here.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Phases of a Compiler (1–3)</span><span>Page 5 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 6: PHASES 4-6 -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 3 · Part B</div>
+      <h1 class="section-title">Phases of a Compiler (4–6)</h1>
+    </div>
+    <div class="page-number">Page 6 of 10</div>
+  </div>
+
+  <!-- PHASE 4 -->
+  <div class="card card-amber" style="padding:12px 14px; margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+      <div style="flex:1; min-width:180px;">
+        <div style="font-weight:800; font-size:15px; color:#78350F;">Phase 4 — Intermediate Code Generation <span class="badge badge-red">★</span></div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">Also called: <em>ICG / IR Generator</em></div>
+        <div style="font-size:12.5px;"><strong>Input:</strong> Annotated AST</div>
+        <div style="font-size:12.5px;"><strong>Output:</strong> Three-Address Code (TAC), Quadruples, or Bytecode</div>
+        <h4 style="margin-top:6px; font-size:12px; color:var(--amber);">Responsibilities:</h4>
+        <ul style="font-size:12px;">
+          <li>Translate AST to machine-independent IR</li>
+          <li>Each instruction has at most 3 operands</li>
+          <li>Use temporary variables (t1, t2 …)</li>
+          <li>Platform-independent representation</li>
+          <li>Simplifies the code generation step</li>
+        </ul>
+        <div style="margin-top:6px; font-size:11.5px; background:var(--amber-light); border-radius:6px; padding:6px 10px; color:#78350F;">
+          <strong>Forms of IR:</strong> Quadruples (op, arg1, arg2, result) · Triples (no result field) · SSA (Static Single Assignment)
+        </div>
+      </div>
+      <div style="min-width:220px;">
+        <div class="code-block" style="font-size:11px; padding:8px 12px;">
+<span class="cm">Input: position = initial + rate*60</span>
+<span class="cm">After semantic: rate * inttofloat(60)</span>
+
+<span class="cm">Three-Address Code output:</span>
+t1 = <span class="kw">inttofloat</span>(<span class="num">60</span>)
+t2 = <span class="kw">id</span>[3] * t1        <span class="cm">// rate*60.0</span>
+t3 = <span class="kw">id</span>[2] + t2        <span class="cm">// initial+t2</span>
+<span class="kw">id</span>[1] = t3           <span class="cm">// position=t3</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 5 -->
+  <div class="card card-red" style="padding:12px 14px; margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+      <div style="flex:1; min-width:180px;">
+        <div style="font-weight:800; font-size:15px; color:#7F1D1D;">Phase 5 — Code Optimization</div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">Also called: <em>Optimizer</em></div>
+        <div style="font-size:12.5px;"><strong>Input:</strong> Three-Address Code / IR</div>
+        <div style="font-size:12.5px;"><strong>Output:</strong> Optimized IR (same meaning, better performance)</div>
+        <h4 style="margin-top:6px; font-size:12px; color:var(--red);">Key Optimization Techniques:</h4>
+        <ul style="font-size:12px;">
+          <li><strong>Constant Folding:</strong> Evaluate constants at compile time (3*5 → 15)</li>
+          <li><strong>Dead Code Elimination:</strong> Remove unreachable code</li>
+          <li><strong>Loop Unrolling:</strong> Reduce loop overhead</li>
+          <li><strong>Common Sub-expression Elimination:</strong> Avoid recomputation</li>
+          <li><strong>Strength Reduction:</strong> Replace expensive ops (x*2 → x+x)</li>
+          <li><strong>Function Inlining:</strong> Replace function calls with body</li>
+        </ul>
+      </div>
+      <div style="min-width:220px;">
+        <div class="code-block" style="font-size:11px; padding:8px 12px;">
+<span class="cm">Before Optimization:</span>
+t1 = <span class="kw">inttofloat</span>(<span class="num">60</span>)
+t2 = <span class="kw">id</span>[3] * t1
+t3 = <span class="kw">id</span>[2] + t2
+<span class="kw">id</span>[1] = t3
+
+<span class="cm">After Optimization:</span>
+<span class="cm">// inttofloat(60) → constant 60.0</span>
+t1 = <span class="kw">id</span>[3] * <span class="num">60.0</span>
+<span class="kw">id</span>[1] = <span class="kw">id</span>[2] + t1
+<span class="cm">// Eliminated t2, t3 temporaries</span>
+        </div>
+        <div class="note-box info" style="font-size:11.5px; margin-top:6px; padding:7px 10px;">
+          <strong>Goal:</strong> Preserve program semantics while improving time/space efficiency.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 6 -->
+  <div class="card card-green" style="padding:12px 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+      <div style="flex:1; min-width:180px;">
+        <div style="font-weight:800; font-size:15px; color:#14532D;">Phase 6 — Code Generation <span class="badge badge-red">★</span></div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">Also called: <em>Code Generator / Back End</em></div>
+        <div style="font-size:12.5px;"><strong>Input:</strong> Optimized IR</div>
+        <div style="font-size:12.5px;"><strong>Output:</strong> Target assembly / machine code</div>
+        <h4 style="margin-top:6px; font-size:12px; color:var(--green);">Responsibilities:</h4>
+        <ul style="font-size:12px;">
+          <li><strong>Instruction selection</strong> — map IR ops to target instructions</li>
+          <li><strong>Register allocation</strong> — assign variables to CPU registers</li>
+          <li><strong>Instruction ordering</strong> — arrange for pipeline efficiency</li>
+          <li>Handle memory allocation and addressing modes</li>
+          <li>This phase is <em>machine-dependent</em></li>
+        </ul>
+      </div>
+      <div style="min-width:220px;">
+        <div class="code-block" style="font-size:11px; padding:8px 12px;">
+<span class="cm">Input (Optimized IR):</span>
+t1 = <span class="kw">id</span>[3] * <span class="num">60.0</span>
+<span class="kw">id</span>[1] = <span class="kw">id</span>[2] + t1
+
+<span class="cm">Output (x86 Assembly):</span>
+<span class="fn">LDF</span>  R2, <span class="str">id[3]</span>     <span class="cm">// R2 = rate</span>
+<span class="fn">MULF</span> R2, R2, <span class="num">#60.0</span>  <span class="cm">// R2 = rate*60.0</span>
+<span class="fn">LDF</span>  R1, <span class="str">id[2]</span>     <span class="cm">// R1 = initial</span>
+<span class="fn">ADDF</span> R1, R1, R2    <span class="cm">// R1 = initial+t1</span>
+<span class="fn">STF</span>  <span class="str">id[1]</span>, R1     <span class="cm">// position = R1</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Phases of a Compiler (4–6)</span><span>Page 6 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 7: COMPILER ARCHITECTURE -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 4</div>
+      <h1 class="section-title">Compiler Architecture</h1>
+    </div>
+    <div class="page-number">Page 7 of 10</div>
+  </div>
+
+  <h2 class="sec2">Architecture Diagram</h2>
+  <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:12px; padding:14px; margin-bottom:12px;">
+    <div style="display:grid; grid-template-columns:1fr 20px 1fr 20px 1fr; gap:8px; align-items:center; margin-bottom:10px;">
+      <div style="background:#EFF6FF; border:2px solid #93C5FD; border-radius:10px; padding:10px; text-align:center;">
+        <div style="font-weight:800; font-size:12px; color:var(--primary); margin-bottom:6px;">FRONT END</div>
+        <div style="font-size:11px; color:var(--text); line-height:1.6;">Lexical Analysis<br>Syntax Analysis<br>Semantic Analysis<br><em>→ Machine Independent</em></div>
+      </div>
+      <div style="text-align:center; color:var(--text-muted); font-size:18px; font-weight:700;">→</div>
+      <div style="background:#EDE9FE; border:2px solid #C4B5FD; border-radius:10px; padding:10px; text-align:center;">
+        <div style="font-weight:800; font-size:12px; color:var(--accent); margin-bottom:6px;">MIDDLE END</div>
+        <div style="font-size:11px; color:var(--text); line-height:1.6;">IR Generation<br>Code Optimization<br>Loop Analysis<br><em>→ Machine Independent</em></div>
+      </div>
+      <div style="text-align:center; color:var(--text-muted); font-size:18px; font-weight:700;">→</div>
+      <div style="background:#F0FDF4; border:2px solid #86EFAC; border-radius:10px; padding:10px; text-align:center;">
+        <div style="font-weight:800; font-size:12px; color:var(--green); margin-bottom:6px;">BACK END</div>
+        <div style="font-size:11px; color:var(--text); line-height:1.6;">Code Generation<br>Register Allocation<br>Instruction Selection<br><em>→ Machine Dependent</em></div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div style="background:#FEF3C7; border:1.5px solid #FDE68A; border-radius:8px; padding:8px 12px; text-align:center;">
+        <div style="font-weight:700; font-size:12px; color:#78350F;">📋 SYMBOL TABLE</div>
+        <div style="font-size:11px; margin-top:4px; color:var(--text);">Shared data structure — accessed by ALL phases throughout compilation</div>
+      </div>
+      <div style="background:#FEE2E2; border:1.5px solid #FECACA; border-radius:8px; padding:8px 12px; text-align:center;">
+        <div style="font-weight:700; font-size:12px; color:#991B1B;">⚠️ ERROR HANDLER</div>
+        <div style="font-size:11px; margin-top:4px; color:var(--text);">Reports errors at every phase — from lexical to code generation</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h2 class="sec2">Symbol Table</h2>
+      <div class="card">
+        <p style="font-size:12.5px;">A data structure that stores information about identifiers (variables, functions, classes) used in the source program.</p>
+        <h4 style="font-size:12px; color:var(--primary); margin-top:6px;">Stores:</h4>
+        <ul style="font-size:12px;">
+          <li>Name of identifier</li>
+          <li>Type (int, float, char…)</li>
+          <li>Scope (local, global)</li>
+          <li>Memory location / offset</li>
+          <li>Number of parameters (for functions)</li>
+          <li>Return type (for functions)</li>
+        </ul>
+      </div>
+      <div class="note-box tip" style="font-size:12px;">
+        <strong>💡 Example Entry:</strong><br>
+        <code style="font-family:'JetBrains Mono',monospace; font-size:11px;">rate | float | 0x1A4 | global</code>
+      </div>
+      <h2 class="sec2">Front End</h2>
+      <ul style="font-size:12.5px;">
+        <li>Performs analysis of source language</li>
+        <li>Machine-independent code</li>
+        <li>Produces IR + symbol table</li>
+        <li>Can be reused for different target machines</li>
+        <li>Contains: Lexer, Parser, Semantic Analyzer</li>
+      </ul>
+    </div>
+    <div>
+      <h2 class="sec2">Error Handling</h2>
+      <div class="tbl-wrap">
+        <table>
+          <tr><th>Phase</th><th>Error Type</th><th>Example</th></tr>
+          <tr><td>Lexical</td><td>Invalid token</td><td><code>@variable</code></td></tr>
+          <tr><td>Syntax</td><td>Grammar violation</td><td><code>if x > 5</code> (missing parens)</td></tr>
+          <tr><td>Semantic</td><td>Type mismatch</td><td><code>int x = "hello"</code></td></tr>
+          <tr><td>Code Gen</td><td>Resource errors</td><td>Too many vars for registers</td></tr>
+        </table>
+      </div>
+      <h2 class="sec2">Middle End</h2>
+      <ul style="font-size:12.5px;">
+        <li>Performs machine-independent optimizations</li>
+        <li>Works on the IR</li>
+        <li>Includes loop transformations, inlining</li>
+        <li>Not present in all compilers (single-pass may skip)</li>
+      </ul>
+      <h2 class="sec2">Back End</h2>
+      <ul style="font-size:12.5px;">
+        <li>Converts IR to target machine code</li>
+        <li>Machine-specific and platform-dependent</li>
+        <li>Handles register allocation, instruction scheduling</li>
+        <li>Different back ends for x86, ARM, MIPS, etc.</li>
+        <li>Contains: Code Generator, Instruction Selector</li>
+      </ul>
+      <div class="note-box info" style="font-size:12px;">
+        <strong>📌 Key advantage:</strong> Front end + Middle end can be reused. Only the back end changes when targeting a new processor architecture.
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Compiler Architecture</span><span>Page 7 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 8: TOOL-BASED APPROACH -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 5</div>
+      <h1 class="section-title">Tool-Based Approach to Compiler Construction</h1>
+    </div>
+    <div class="page-number">Page 8 of 10</div>
+  </div>
+  <div class="note-box info" style="margin-bottom:12px;">
+    <strong>📖 Overview:</strong> Instead of writing a compiler from scratch, compiler-construction tools automate the creation of lexical analyzers, parsers, and code generators from formal specifications.
+  </div>
+  <div class="two-col">
+    <div>
+      <h2 class="sec2">What are Compiler-Generating Tools?</h2>
+      <p style="font-size:12.5px;">These are software tools that take a formal specification (grammar rules, regex patterns) as input and automatically generate the corresponding compiler component as output.</p>
+      <h2 class="sec2">Role of Automation in Compiler Design</h2>
+      <ul style="font-size:12.5px;">
+        <li>Reduce development time significantly</li>
+        <li>Minimize manual coding errors</li>
+        <li>Enable changes by modifying only the grammar/spec</li>
+        <li>Allow non-experts to build correct parsers</li>
+        <li>Enforce systematic, well-tested techniques</li>
+        <li>Support rapid prototyping of new languages</li>
+      </ul>
+      <h2 class="sec2">Benefits of Using Tools</h2>
+      <div class="three-col" style="margin-top:8px; gap:6px;">
+        <div style="background:#DBEAFE; border:1.5px solid #93C5FD; border-radius:8px; padding:8px; text-align:center; font-size:11.5px;"><div style="font-size:18px; margin-bottom:4px;">⚡</div><strong style="color:var(--primary);">Speed</strong><br>Faster development</div>
+        <div style="background:#DCFCE7; border:1.5px solid #86EFAC; border-radius:8px; padding:8px; text-align:center; font-size:11.5px;"><div style="font-size:18px; margin-bottom:4px;">✅</div><strong style="color:var(--green);">Correctness</strong><br>Proven algorithms</div>
+        <div style="background:#EDE9FE; border:1.5px solid #C4B5FD; border-radius:8px; padding:8px; text-align:center; font-size:11.5px;"><div style="font-size:18px; margin-bottom:4px;">🔄</div><strong style="color:var(--accent);">Flexibility</strong><br>Easy grammar changes</div>
+        <div style="background:#FEF3C7; border:1.5px solid #FDE68A; border-radius:8px; padding:8px; text-align:center; font-size:11.5px;"><div style="font-size:18px; margin-bottom:4px;">📚</div><strong style="color:var(--amber);">Reusability</strong><br>Grammars reused</div>
+        <div style="background:#FEE2E2; border:1.5px solid #FECACA; border-radius:8px; padding:8px; text-align:center; font-size:11.5px;"><div style="font-size:18px; margin-bottom:4px;">🔍</div><strong style="color:var(--red);">Debugging</strong><br>Clean output code</div>
+        <div style="background:#CCFBF1; border:1.5px solid #99F6E4; border-radius:8px; padding:8px; text-align:center; font-size:11.5px;"><div style="font-size:18px; margin-bottom:4px;">🧩</div><strong style="color:var(--teal);">Modularity</strong><br>Each phase separated</div>
+      </div>
+    </div>
+    <div>
+      <h2 class="sec2">Compiler Construction Tools <span class="badge badge-red">★ Exam Hot</span></h2>
+      <div class="tool-grid">
+        <div class="tool-card">
+          <div class="tc-name">LEX / FLEX</div>
+          <div class="tc-full">Lexical Analyzer Generator</div>
+          <div class="tc-desc">Takes regex patterns as input. Generates C code for a lexical analyzer (scanner/tokenizer).</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">YACC / BISON</div>
+          <div class="tc-full">Yet Another Compiler Compiler</div>
+          <div class="tc-desc">Takes BNF grammar rules as input. Generates LALR(1) bottom-up parser in C.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">ANTLR</div>
+          <div class="tc-full">ANother Tool for Language Recognition</div>
+          <div class="tc-desc">Generates parsers, lexers, tree walkers from EBNF grammar. Outputs Java, Python, C#, and more.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">LLVM</div>
+          <div class="tc-full">Low Level Virtual Machine</div>
+          <div class="tc-desc">Modern compiler infrastructure. Reusable middle and back end. Used by Clang/Swift/Rust.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">GCC</div>
+          <div class="tc-full">GNU Compiler Collection</div>
+          <div class="tc-desc">Open source compiler framework supporting C, C++, Fortran, Ada, and more languages.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">SDT Schemes</div>
+          <div class="tc-full">Syntax-Directed Translation</div>
+          <div class="tc-desc">Attach semantic actions to grammar rules. Automate semantic analysis and IR generation.</div>
+        </div>
+      </div>
+      <div class="note-box tip" style="margin-top:8px;">
+        <strong>💡 LEX + YACC Workflow:</strong><br>
+        <span style="font-size:11.5px;">
+          LEX spec (<code>.l</code>) → <strong>lex</strong> → <code>lex.yy.c</code><br>
+          YACC grammar (<code>.y</code>) → <strong>yacc</strong> → <code>y.tab.c</code><br>
+          Compile both with GCC → <strong>executable compiler/parser</strong>
+        </span>
+      </div>
+    </div>
+  </div>
+  <h2 class="sec2">Tool-Based Construction Pipeline</h2>
+  <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:12px 16px; margin-top:6px;">
+    <div class="workflow-row">
+      <div class="wf-step src">Regex Patterns (.l file)</div><div class="wf-arrow">→</div>
+      <div class="wf-step">LEX Tool</div><div class="wf-arrow">→</div>
+      <div class="wf-step">Lexical Analyzer (C code)</div><div class="wf-arrow">→</div>
+      <div class="wf-io">Tokens</div>
+    </div>
+    <div class="workflow-row">
+      <div class="wf-step src">BNF Grammar (.y file)</div><div class="wf-arrow">→</div>
+      <div class="wf-step">YACC Tool</div><div class="wf-arrow">→</div>
+      <div class="wf-step">LALR(1) Parser (C code)</div><div class="wf-arrow">→</div>
+      <div class="wf-io">Parse Tree</div>
+    </div>
+    <div class="workflow-row">
+      <div class="wf-step src">IR + Target Info</div><div class="wf-arrow">→</div>
+      <div class="wf-step">LLVM / GCC Backend</div><div class="wf-arrow">→</div>
+      <div class="wf-step out">Machine Code</div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Tool-Based Approach</span><span>Page 8 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 9: WORKFLOW & DEFINITIONS -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topics 6 &amp; 7</div>
+      <h1 class="section-title">Compiler Workflow &amp; Important Definitions</h1>
+    </div>
+    <div class="page-number">Page 9 of 10</div>
+  </div>
+
+  <h2 class="sec2">Program Flow: Source Code → Executable</h2>
+  <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px; font-size:12px;">
+      <div class="wf-step src">Source Code<br><em style="font-size:10px;">.c / .java</em></div><div class="wf-arrow">→</div>
+      <div class="wf-step">Preprocessor<br><em style="font-size:10px;">#include,#define</em></div><div class="wf-arrow">→</div>
+      <div class="wf-step">Compiler<br><em style="font-size:10px;">6 phases</em></div><div class="wf-arrow">→</div>
+      <div class="wf-step">Assembly<br><em style="font-size:10px;">.asm</em></div><div class="wf-arrow">→</div>
+      <div class="wf-step">Assembler<br><em style="font-size:10px;">NASM/MASM</em></div><div class="wf-arrow">→</div>
+      <div class="wf-step">Object Code<br><em style="font-size:10px;">.obj</em></div><div class="wf-arrow">→</div>
+      <div class="wf-step">Linker<br><em style="font-size:10px;">+ Libraries</em></div><div class="wf-arrow">→</div>
+      <div class="wf-step out">Executable<br><em style="font-size:10px;">.exe</em></div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Data Flow Between Phases</h2>
+  <div class="tbl-wrap" style="margin-bottom:12px;">
+    <table>
+      <tr><th>Phase</th><th>Input</th><th>Output / Data Passed to Next Phase</th></tr>
+      <tr><td><span class="badge badge-blue">Lexical</span></td><td>Character stream</td><td>Token stream → Syntax Analyzer</td></tr>
+      <tr><td><span class="badge badge-purple">Syntax</span></td><td>Token stream</td><td>Parse tree / AST → Semantic Analyzer</td></tr>
+      <tr><td><span class="badge badge-teal">Semantic</span></td><td>AST + Symbol Table</td><td>Annotated AST → ICG</td></tr>
+      <tr><td><span class="badge badge-amber">ICG</span></td><td>Annotated AST</td><td>Three-address code (IR) → Optimizer</td></tr>
+      <tr><td><span class="badge badge-red">Optimizer</span></td><td>IR (TAC)</td><td>Optimized IR → Code Generator</td></tr>
+      <tr><td><span class="badge badge-green">Code Gen</span></td><td>Optimized IR</td><td>Assembly / Machine code → Assembler/Linker</td></tr>
+    </table>
+  </div>
+
+  <h2 class="sec2">Important Definitions <span class="badge badge-red">★ Exam Hot</span></h2>
+  <div class="def-grid">
+    <div class="def-card"><div class="dc-term">Token</div><div class="dc-def">A pair &lt;token-type, attribute-value&gt; representing a meaningful unit in the source (e.g., identifier, keyword, operator).</div></div>
+    <div class="def-card"><div class="dc-term">Lexeme</div><div class="dc-def">The actual character sequence in the source code that matches a token pattern (e.g., "position", "60", "+").</div></div>
+    <div class="def-card"><div class="dc-term">Pattern</div><div class="dc-def">A rule describing the set of strings that can form a lexeme for a token. Written as a regular expression.</div></div>
+    <div class="def-card"><div class="dc-term">Parse Tree</div><div class="dc-def">A hierarchical tree representing the syntactic structure of source code according to the grammar rules.</div></div>
+    <div class="def-card"><div class="dc-term">Abstract Syntax Tree (AST)</div><div class="dc-def">A condensed parse tree that omits unnecessary nodes (punctuation, trivial grammar rules).</div></div>
+    <div class="def-card"><div class="dc-term">Symbol Table</div><div class="dc-def">A data structure storing information about identifiers: name, type, scope, memory location.</div></div>
+    <div class="def-card"><div class="dc-term">Intermediate Representation (IR)</div><div class="dc-def">A machine-independent form of code between source and target, often Three-Address Code (TAC).</div></div>
+    <div class="def-card"><div class="dc-term">Three-Address Code (TAC)</div><div class="dc-def">IR where each instruction has at most one operator and three operands: x = y op z.</div></div>
+    <div class="def-card"><div class="dc-term">Context-Free Grammar (CFG)</div><div class="dc-def">A grammar formalism used to specify the syntactic structure of programming languages.</div></div>
+    <div class="def-card"><div class="dc-term">Type Checking</div><div class="dc-def">Verification that operands of an operator are of compatible types; done in semantic analysis.</div></div>
+    <div class="def-card"><div class="dc-term">Register Allocation</div><div class="dc-def">Assigning program variables to CPU registers during code generation to minimize memory accesses.</div></div>
+    <div class="def-card"><div class="dc-term">Linker</div><div class="dc-def">Combines multiple object files and resolves external references to create a single executable.</div></div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Workflow &amp; Definitions</span><span>Page 9 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 10: KEY DIFFERENCES -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 8</div>
+      <h1 class="section-title">Key Differences</h1>
+    </div>
+    <div class="page-number">Page 10 of 10</div>
+  </div>
+  <h2 class="sec2">Compiler vs Interpreter <span class="badge badge-red">★ Exam Hot</span></h2>
+  <div class="tbl-wrap" style="margin-bottom:14px;">
+    <table>
+      <tr><th>Criteria</th><th>Compiler</th><th>Interpreter</th></tr>
+      <tr><td><strong>Translation Unit</strong></td><td>Translates entire program at once</td><td>Translates one statement at a time</td></tr>
+      <tr><td><strong>Output</strong></td><td>Object code / executable stored on disk</td><td>No object code; directly executes</td></tr>
+      <tr><td><strong>Execution Speed</strong></td><td>Faster (compiled once, runs many times)</td><td>Slower (translated on every run)</td></tr>
+      <tr><td><strong>Error Display</strong></td><td>All errors shown after compilation</td><td>Error shown line-by-line during execution</td></tr>
+      <tr><td><strong>Memory Usage</strong></td><td>More memory (creates object file)</td><td>Less memory (no object file)</td></tr>
+      <tr><td><strong>Debugging</strong></td><td>Harder — all errors at the end</td><td>Easier — stops at first error</td></tr>
+      <tr><td><strong>Source Code</strong></td><td>Not needed at runtime</td><td>Needed at every execution</td></tr>
+      <tr><td><strong>Optimization</strong></td><td>Can heavily optimize (whole-program analysis)</td><td>Limited optimization possible</td></tr>
+      <tr><td><strong>Security</strong></td><td>Source code hidden in binary</td><td>Source exposed at runtime</td></tr>
+      <tr><td><strong>Examples</strong></td><td>GCC (C), javac, g++ (C++)</td><td>Python, Ruby, PHP, MATLAB</td></tr>
+    </table>
+  </div>
+  <div class="two-col">
+    <div>
+      <h2 class="sec2">Analysis vs Synthesis <span class="badge badge-red">★</span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <tr><th>Aspect</th><th>Analysis</th><th>Synthesis</th></tr>
+          <tr><td>Also called</td><td>Front End</td><td>Back End</td></tr>
+          <tr><td>Purpose</td><td>Understand source code</td><td>Produce target code</td></tr>
+          <tr><td>Machine dependence</td><td>Independent</td><td>Dependent</td></tr>
+          <tr><td>Output</td><td>IR + Symbol Table</td><td>Machine code</td></tr>
+          <tr><td>Phases</td><td>Lex, Syntax, Semantic</td><td>ICG, Opt, Code Gen</td></tr>
+          <tr><td>Portability</td><td>Reused for diff targets</td><td>Different per machine</td></tr>
+          <tr><td>Error types</td><td>Lexical, syntax, semantic</td><td>Resource/allocation</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h2 class="sec2">Front End vs Back End</h2>
+      <div class="tbl-wrap">
+        <table>
+          <tr><th>Aspect</th><th>Front End</th><th>Back End</th></tr>
+          <tr><td>Input</td><td>Source code</td><td>Intermediate code</td></tr>
+          <tr><td>Output</td><td>IR + Symbol Table</td><td>Machine code</td></tr>
+          <tr><td>Dependence</td><td>Source language dependent</td><td>Target machine dependent</td></tr>
+          <tr><td>Main tasks</td><td>Tokenize, Parse, Type-check</td><td>Allocate registers, emit instrs</td></tr>
+          <tr><td>Portability</td><td>Reused for different targets</td><td>Rewritten per platform</td></tr>
+          <tr><td>Optimization</td><td>Machine-independent</td><td>Machine-specific</td></tr>
+          <tr><td>Tools</td><td>LEX, YACC, ANTLR</td><td>LLVM, GCC backend</td></tr>
+        </table>
+      </div>
+      <div class="note-box tip" style="margin-top:8px;">
+        <strong>💡 Why separate?</strong> Write ONE front end for C; use multiple back ends (x86, ARM, RISC-V). Or have multiple front ends (C, C++, Fortran) share the same GCC back end.
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Key Differences</span><span>Page 10 / 10</span>
+  </div>
+</div>
+
+<!-- PAGE 11: EXAM QUICK REVISION -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 9</div>
+      <h1 class="section-title">Exam Quick Revision</h1>
+    </div>
+    <div class="page-number">Page 11</div>
+  </div>
+  <div class="two-col">
+    <div>
+      <h2 class="sec2">Important Points to Remember</h2>
+      <div class="card card-amber" style="padding:10px 12px; margin-bottom:8px;">
+        <ul style="font-size:12px;">
+          <li>A compiler processes the <strong>entire</strong> source before outputting.</li>
+          <li>Lexical analysis uses <strong>Regular Expressions + DFA/NFA</strong>.</li>
+          <li>Syntax analysis uses <strong>CFG + Parsing algorithms</strong>.</li>
+          <li>Semantic analysis uses <strong>Attribute Grammar</strong>.</li>
+          <li>ICG produces <strong>Three-Address Code</strong> (most common form).</li>
+          <li>Optimization does NOT change program <strong>meaning</strong>, only efficiency.</li>
+          <li>Code generation is the only <strong>machine-dependent</strong> phase.</li>
+          <li>The Symbol Table is used by <strong>ALL phases</strong> of the compiler.</li>
+          <li>Front end is <strong>source-language dependent</strong>; back end is <strong>target-machine dependent</strong>.</li>
+          <li>LEX generates lexer; YACC generates parser (both produce C code).</li>
+          <li>ANTLR supports multiple output languages (Java, Python, C#…).</li>
+          <li><code>inttofloat()</code> in TAC represents <strong>implicit type coercion</strong>.</li>
+        </ul>
+      </div>
+      <h2 class="sec2">Typical Exam Questions</h2>
+      <ul style="font-size:12px;">
+        <li>Define compiler. Explain the role of a compiler. (2 marks)</li>
+        <li>Differentiate compiler and interpreter. (4–6 marks)</li>
+        <li>Explain the analysis-synthesis model with a diagram. (6 marks)</li>
+        <li>List and explain the phases of a compiler with a diagram. (10–12 marks)</li>
+        <li>What is a symbol table? What information does it store? (4 marks)</li>
+        <li>Explain lexical analysis with an example. (4 marks)</li>
+        <li>What is Three-Address Code? Give an example. (4 marks)</li>
+        <li>Write a note on compiler-construction tools. (6 marks)</li>
+        <li>Differentiate front end and back end of a compiler. (4 marks)</li>
+        <li>What are the different types of errors in compilation? (4 marks)</li>
+        <li>What is intermediate code? Why is it used? (4 marks)</li>
+        <li>Explain code optimization techniques. (6 marks)</li>
+      </ul>
+    </div>
+    <div>
+      <h2 class="sec2">2-Mark Short Answers <span class="badge badge-red">★</span></h2>
+      <div class="exam-q"><div class="eq-question">Q: What is a compiler?</div><div class="eq-answer">A program that translates source code written in a HLL into target language (machine/assembly code), while reporting errors.</div></div>
+      <div class="exam-q"><div class="eq-question">Q: What is a token?</div><div class="eq-answer">A pair &lt;token-type, attribute-value&gt; — the output of lexical analysis. E.g., &lt;id, 1&gt; for variable "position".</div></div>
+      <div class="exam-q"><div class="eq-question">Q: What is a parse tree?</div><div class="eq-answer">A tree that shows the syntactic structure of a program according to grammar rules. Root is the start symbol.</div></div>
+      <div class="exam-q"><div class="eq-question">Q: What is the role of semantic analysis?</div><div class="eq-answer">Checks type compatibility, scope of variables, and logical correctness. Detects errors like type mismatch.</div></div>
+      <div class="exam-q"><div class="eq-question">Q: Define intermediate code.</div><div class="eq-answer">A machine-independent representation (like Three-Address Code) produced between analysis and code generation phases.</div></div>
+      <div class="exam-q"><div class="eq-question">Q: What is LEX?</div><div class="eq-answer">A compiler construction tool that generates lexical analyzers (scanners) from regular expression specifications.</div></div>
+      <div class="exam-q"><div class="eq-question">Q: What is the symbol table used for?</div><div class="eq-answer">Stores identifier info (name, type, scope, memory location) used by all phases of the compiler.</div></div>
+      <div class="exam-q"><div class="eq-question">Q: What is code optimization?</div><div class="eq-answer">A phase that improves the IR code for better time/space efficiency without changing the program's meaning.</div></div>
+      <div class="exam-q"><div class="eq-question">Q: What is the difference between lexeme and token?</div><div class="eq-answer">Lexeme is the actual string in source ("rate"); token is the abstract representation &lt;id, 3&gt;.</div></div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Exam Quick Revision</span><span>Page 11</span>
+  </div>
+</div>
+
+<!-- PAGE 12: SUMMARY -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 10</div>
+      <h1 class="section-title">Summary — Final Quick Revision</h1>
+    </div>
+    <div class="page-number">Summary Page</div>
+  </div>
+  <div class="note-box exam" style="margin-bottom:12px;">
+    <strong>🎯 Last-Minute Revision:</strong> This page summarizes everything you need to remember. Read this just before your exam!
+  </div>
+  <div class="summary-grid">
+    <div class="sum-card" style="border-color:#93C5FD; background:#EFF6FF;"><div class="sc-title" style="color:var(--primary);">📘 Compiler Basics</div><div class="sc-body"><ul><li>HLL → Machine code translator</li><li>Compiles entire program at once</li><li>Produces object code on disk</li><li>Faster execution than interpreter</li><li>Examples: GCC, g++, javac</li></ul></div></div>
+    <div class="sum-card" style="border-color:#86EFAC; background:#F0FDF4;"><div class="sc-title" style="color:var(--green);">🔍 Analysis Phase</div><div class="sc-body"><ul><li>= Front End</li><li>Machine-independent</li><li>Phases: Lex → Syn → Sem</li><li>Output: IR + Symbol Table</li><li>Detects all language errors</li></ul></div></div>
+    <div class="sum-card" style="border-color:#C4B5FD; background:#F5F3FF;"><div class="sc-title" style="color:var(--accent);">🔨 Synthesis Phase</div><div class="sc-body"><ul><li>= Back End</li><li>Machine-dependent</li><li>Phases: ICG → Opt → CG</li><li>Input: IR; Output: Machine code</li><li>Different per target platform</li></ul></div></div>
+    <div class="sum-card" style="border-color:#BFDBFE; background:#EFF6FF;"><div class="sc-title" style="color:var(--primary);">🔤 Lexical Analysis</div><div class="sc-body"><ul><li>Characters → Tokens</li><li>Uses RegEx + DFA</li><li>Removes whitespace/comments</li><li>Tool: LEX / FLEX</li></ul></div></div>
+    <div class="sum-card" style="border-color:#DDD6FE; background:#F5F3FF;"><div class="sc-title" style="color:var(--accent);">🌳 Syntax Analysis</div><div class="sc-body"><ul><li>Tokens → Parse Tree / AST</li><li>Uses CFG + parsing algos</li><li>LL(top-down) or LR(bottom-up)</li><li>Tool: YACC / BISON / ANTLR</li></ul></div></div>
+    <div class="sum-card" style="border-color:#99F6E4; background:#F0FDFA;"><div class="sc-title" style="color:var(--teal);">✅ Semantic Analysis</div><div class="sc-body"><ul><li>AST → Annotated AST</li><li>Type checking, scope check</li><li>Type coercion (inttofloat)</li><li>Uses Attribute Grammar</li></ul></div></div>
+    <div class="sum-card" style="border-color:#FDE68A; background:#FFFBEB;"><div class="sc-title" style="color:var(--amber);">📝 ICG</div><div class="sc-body"><ul><li>AST → TAC (IR)</li><li>Three-address code: x=y op z</li><li>Uses temp vars (t1, t2...)</li><li>Machine-independent IR</li></ul></div></div>
+    <div class="sum-card" style="border-color:#FECACA; background:#FFF5F5;"><div class="sc-title" style="color:var(--red);">⚡ Optimization</div><div class="sc-body"><ul><li>IR → Better IR (same meaning)</li><li>Constant folding, dead code</li><li>Loop unrolling, inlining</li><li>Preserves program semantics</li></ul></div></div>
+    <div class="sum-card" style="border-color:#BBF7D0; background:#F0FDF4;"><div class="sc-title" style="color:var(--green);">💻 Code Generation</div><div class="sc-body"><ul><li>IR → Assembly/Machine code</li><li>Register allocation</li><li>Instruction selection</li><li>Machine-dependent phase</li></ul></div></div>
+  </div>
+
+  <h2 class="sec2">Complete Phase Flow — One-Line Summary</h2>
+  <div style="background:#0F172A; border-radius:10px; padding:12px 16px; margin-bottom:12px;">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px; font-size:11.5px; font-family:'JetBrains Mono',monospace;">
+      <span style="background:#1E3A8A; color:#93C5FD; padding:3px 8px; border-radius:4px;">Source</span>
+      <span style="color:#475569;">→</span>
+      <span style="background:#2D1B69; color:#C4B5FD; padding:3px 8px; border-radius:4px;">Lexer→Tokens</span>
+      <span style="color:#475569;">→</span>
+      <span style="background:#134E4A; color:#5EEAD4; padding:3px 8px; border-radius:4px;">Parser→AST</span>
+      <span style="color:#475569;">→</span>
+      <span style="background:#14532D; color:#86EFAC; padding:3px 8px; border-radius:4px;">Semantic→IR</span>
+      <span style="color:#475569;">→</span>
+      <span style="background:#78350F; color:#FDE68A; padding:3px 8px; border-radius:4px;">ICG→TAC</span>
+      <span style="color:#475569;">→</span>
+      <span style="background:#7F1D1D; color:#FCA5A5; padding:3px 8px; border-radius:4px;">Opt→Better IR</span>
+      <span style="color:#475569;">→</span>
+      <span style="background:#1E3A8A; color:#BFDBFE; padding:3px 8px; border-radius:4px;">CodeGen→ASM</span>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="note-box tip">
+      <strong>🔑 Key formula to remember:</strong><br>
+      <em>Compiler = Analysis (FE) + Synthesis (BE)</em><br>
+      <em>Analysis = Lex + Syn + Sem</em><br>
+      <em>Synthesis = ICG + Opt + CodeGen</em>
+    </div>
+    <div class="note-box exam">
+      <strong>🎯 Most Tested Topics:</strong><br>
+      1. All 6 phases with I/O + example<br>
+      2. Compiler vs Interpreter table<br>
+      3. Analysis-Synthesis diagram<br>
+      4. Symbol table purpose<br>
+      5. LEX and YACC tools
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:18px; padding:12px; background:var(--bg); border-radius:10px; border:1.5px solid var(--border);">
+    <div style="font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--primary-dark); margin-bottom:4px;">Module 1 — Compiler Structure (CO1)</div>
+    <div style="font-size:12px; color:var(--text-muted);">B.E. Computer Science · Compiler Design · Academic Cheat Sheet</div>
+    <div style="margin-top:8px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+      <span class="badge badge-blue">6 Phases</span>
+      <span class="badge badge-teal">Analysis–Synthesis</span>
+      <span class="badge badge-purple">Symbol Table</span>
+      <span class="badge badge-amber">Tool-Based Approach</span>
+      <span class="badge badge-green">Key Definitions</span>
+      <span class="badge badge-red">Exam Ready</span>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Module 1 – Compiler Structure (CO1)</span><span>Summary Page</span><span>End of Document</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 2 – Lexical Analysis (CO2) | Cheat Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #4A90E2;
+    --primary-light: #E3F2FD;
+    --primary-dark: #1565C0;
+    --teal: #50C878;
+    --teal-light: #D1F2EB;
+    --accent: #9C27B0;
+    --accent-light: #F3E5F5;
+    --amber: #FF9800;
+    --amber-light: #FFF3E0;
+    --red: #E53935;
+    --red-light: #FFEBEE;
+    --green: #43A047;
+    --green-light: #E8F5E9;
+    --bg: #F8F9FB;
+    --surface: #FFFFFF;
+    --border: #E1E8ED;
+    --text: #263238;
+    --text-muted: #546E7A;
+    --text-light: #90A4AE;
+    --page-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    --card-radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #B0BEC5;
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    background: var(--surface);
+    margin: 24px auto;
+    border-radius: 4px;
+    box-shadow: var(--page-shadow);
+    padding: 14mm 16mm 12mm 16mm;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary), var(--teal), var(--accent));
+  }
+  /* TITLE PAGE */
+  .title-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 297mm;
+    background: linear-gradient(145deg, #E3F2FD 0%, #E8F5E9 50%, #F3E5F5 100%);
+    padding: 20mm;
+  }
+  .title-badge {
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+  .title-main {
+    font-family: 'Playfair Display', serif;
+    font-size: 46px;
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--primary-dark);
+    margin-bottom: 12px;
+  }
+  .title-sub {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--teal);
+    margin-bottom: 6px;
+  }
+  .title-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 380px;
+    margin-bottom: 40px;
+  }
+  .title-divider {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--teal));
+    border-radius: 2px;
+    margin: 20px auto;
+  }
+  .title-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+    margin-top: 8px;
+  }
+  .meta-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .meta-card .mc-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+  }
+  .meta-card .mc-label {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .title-footer {
+    margin-top: 44px;
+    font-size: 11px;
+    color: var(--text-light);
+    letter-spacing: 0.5px;
+  }
+  /* TOC */
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 14px;
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+  .toc-item:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+  }
+  .toc-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 30px;
+  }
+  .toc-text {
+    flex: 1;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  /* HEADERS */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-title-wrap {
+    flex: 1;
+  }
+  .st-badge {
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.2;
+  }
+  .page-number {
+    font-size: 11px;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+  .page-footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 16mm;
+    right: 16mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-light);
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  /* TYPOGRAPHY */
+  h2.sec2 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--primary-dark);
+    margin: 14px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--primary-light);
+  }
+  h3.sec3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--teal);
+    margin: 10px 0 6px 0;
+  }
+  p {
+    margin-bottom: 8px;
+  }
+  ul, ol {
+    margin-left: 18px;
+    margin-bottom: 8px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  /* CARDS */
+  .card {
+    border-radius: var(--card-radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border: 1.5px solid;
+  }
+  .card-blue {
+    background: var(--primary-light);
+    border-color: #90CAF9;
+  }
+  .card-teal {
+    background: var(--teal-light);
+    border-color: #80CBC4;
+  }
+  .card-purple {
+    background: var(--accent-light);
+    border-color: #CE93D8;
+  }
+  .card-amber {
+    background: var(--amber-light);
+    border-color: #FFCC80;
+  }
+  .card-red {
+    background: var(--red-light);
+    border-color: #EF9A9A;
+  }
+  .card-green {
+    background: var(--green-light);
+    border-color: #A5D6A7;
+  }
+  /* NOTE BOXES */
+  .note-box {
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+    font-size: 12.5px;
+  }
+  .note-box.important {
+    background: var(--red-light);
+    border-color: var(--red);
+  }
+  .note-box.tip {
+    background: var(--green-light);
+    border-color: var(--green);
+  }
+  .note-box.exam {
+    background: var(--amber-light);
+    border-color: var(--amber);
+  }
+  .note-box.info {
+    background: var(--primary-light);
+    border-color: var(--primary);
+  }
+  /* CODE BLOCKS */
+  .code-block {
+    background: #263238;
+    color: #ECEFF1;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+  .code-block .keyword { color: #C792EA; }
+  .code-block .string { color: #C3E88D; }
+  .code-block .number { color: #F78C6C; }
+  .code-block .comment { color: #546E7A; font-style: italic; }
+  .code-block .operator { color: #89DDFF; }
+  /* TABLES */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 12.5px;
+  }
+  th {
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  tr:nth-child(even) {
+    background: var(--bg);
+  }
+  /* LAYOUT */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+  .badge-blue { background: var(--primary-light); color: var(--primary-dark); }
+  .badge-teal { background: var(--teal-light); color: #00695C; }
+  .badge-purple { background: var(--accent-light); color: #6A1B9A; }
+  .badge-amber { background: var(--amber-light); color: #E65100; }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-green { background: var(--green-light); color: #2E7D32; }
+  /* DIAGRAMS */
+  .diagram-box {
+    background: var(--bg);
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+  }
+  .flow-step {
+    display: inline-block;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin: 4px;
+    font-weight: 500;
+    font-size: 12px;
+  }
+  .flow-arrow {
+    display: inline-block;
+    color: var(--primary);
+    font-size: 18px;
+    margin: 0 6px;
+  }
+  /* EXAM Q&A */
+  .exam-q {
+    background: var(--bg);
+    border-left: 3px solid var(--primary);
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+  }
+  .eq-question {
+    font-weight: 600;
+    color: var(--primary-dark);
+    font-size: 12.5px;
+    margin-bottom: 4px;
+  }
+  .eq-answer {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  /* SUMMARY GRID */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .sum-card {
+    border: 2px solid;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .sc-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .sc-body {
+    font-size: 11.5px;
+  }
+  .sc-body ul {
+    margin-left: 14px;
+  }
+  .sc-body li {
+    margin-bottom: 3px;
+  }
+  /* TRANSITION DIAGRAM */
+  .transition-diagram {
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .state-circle {
+    width: 50px;
+    height: 50px;
+    border: 3px solid var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    background: white;
+    color: var(--primary);
+  }
+  .state-circle.final {
+    border-width: 6px;
+    border-style: double;
+  }
+  .trans-arrow {
+    font-size: 24px;
+    color: var(--primary);
+    position: relative;
+  }
+  .trans-label {
+    font-size: 10px;
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    color: var(--text-muted);
+  }
+  @media print {
+    body { background: white; }
+    .page {
+      margin: 0;
+      box-shadow: none;
+      page-break-after: always;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE PAGE -->
+<div class="page title-page">
+  <div class="title-badge">Module 2 • CO2</div>
+  <h1 class="title-main">Lexical Analysis</h1>
+  <div class="title-sub">Compiler Design Cheat Sheet</div>
+  <div class="title-desc">
+    Complete guide to lexical analysis phase — tokens, patterns, finite automata, and implementation strategies
+  </div>
+  <div class="title-divider"></div>
+  <div class="title-meta-grid">
+    <div class="meta-card">
+      <div class="mc-num">10</div>
+      <div class="mc-label">Topics Covered</div>
+    </div>
+    <div class="meta-card">
+      <div class="mc-num">12</div>
+      <div class="mc-label">Pages</div>
+    </div>
+    <div class="meta-card">
+      <div class="mc-num">100%</div>
+      <div class="mc-label">Exam Ready</div>
+    </div>
+  </div>
+  <div class="title-footer">
+    B.E. Computer Science • Compiler Design • Academic Study Guide
+  </div>
+</div>
+
+<!-- TOC PAGE -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Contents</div>
+      <h1 class="section-title">Table of Contents</h1>
+    </div>
+    <div class="page-number">Page 2</div>
+  </div>
+  <div class="note-box exam">
+    <strong>📚 Study Guide:</strong> This cheat sheet covers all essential topics for Module 2 – Lexical Analysis. Each section is designed for quick revision and exam preparation.
+  </div>
+  <div class="toc-grid">
+    <div class="toc-item">
+      <div class="toc-num">01</div>
+      <div class="toc-text">Introduction to Lexical Analysis</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">02</div>
+      <div class="toc-text">Interface of Lexical Analyzer</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">03</div>
+      <div class="toc-text">Tokens, Lexemes, and Patterns</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">04</div>
+      <div class="toc-text">Token Classification</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">05</div>
+      <div class="toc-text">Difficulties in Lexical Analysis</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">06</div>
+      <div class="toc-text">Error Reporting in Lexical Analysis</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">07</div>
+      <div class="toc-text">Implementation of Lexical Analyzer</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">08</div>
+      <div class="toc-text">Regular Definitions & Expressions</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">09</div>
+      <div class="toc-text">Transition Diagrams</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">10</div>
+      <div class="toc-text">Exam Quick Revision</div>
+    </div>
+  </div>
+  <h2 class="sec2">What You'll Learn</h2>
+  <div class="two-col">
+    <div>
+      <div class="card card-blue">
+        <strong>🎯 Core Concepts</strong>
+        <ul style="margin-top:6px; font-size:12px;">
+          <li>Role and responsibilities of lexical analyzer</li>
+          <li>Token generation and classification</li>
+          <li>Pattern matching techniques</li>
+          <li>Error detection and recovery</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card card-teal">
+        <strong>🔧 Implementation</strong>
+        <ul style="margin-top:6px; font-size:12px;">
+          <li>Finite automata and state transitions</li>
+          <li>Regular expressions for pattern definition</li>
+          <li>Input buffering strategies</li>
+          <li>Symbol table interaction</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="note-box tip">
+    <strong>💡 Study Tip:</strong> Focus on understanding the flow from source characters to tokens. Practice drawing transition diagrams and writing regular expressions for common token patterns.
+  </div>
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Table of Contents</span><span>Page 2 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 3: INTRODUCTION -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 1</div>
+      <h1 class="section-title">Introduction to Lexical Analysis</h1>
+    </div>
+    <div class="page-number">Page 3</div>
+  </div>
+
+  <h2 class="sec2">Definition</h2>
+  <div class="card card-blue">
+    <strong>Lexical Analyzer (Scanner/Tokenizer):</strong> The first phase of a compiler that reads the source program as a stream of characters and groups them into meaningful sequences called <strong>lexemes</strong>, which are then represented as <strong>tokens</strong>.
+  </div>
+
+  <h2 class="sec2">Role in Compiler</h2>
+  <p>The lexical analyzer acts as the interface between the source program and the syntax analyzer (parser). It performs the following key functions:</p>
+  <ul>
+    <li><strong>Tokenization:</strong> Converts character stream into token stream</li>
+    <li><strong>White Space Removal:</strong> Eliminates spaces, tabs, newlines</li>
+    <li><strong>Comment Removal:</strong> Strips out comments from source code</li>
+    <li><strong>Error Reporting:</strong> Detects illegal characters and malformed tokens</li>
+    <li><strong>Symbol Table Management:</strong> Stores identifiers and their attributes</li>
+    <li><strong>Line Number Tracking:</strong> Keeps track of line numbers for error messages</li>
+  </ul>
+
+  <h2 class="sec2">Position in Compiler Phases</h2>
+  <div class="diagram-box">
+    <div class="flow-step">Source Program</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step" style="background:var(--primary-light);">Lexical Analyzer</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Token Stream</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Syntax Analyzer</div>
+  </div>
+
+  <h2 class="sec2">Why Separate Lexical Analysis?</h2>
+  <div class="two-col">
+    <div>
+      <div class="card card-teal">
+        <strong>✓ Simplicity</strong>
+        <p style="margin-top:6px; font-size:12px;">Separating lexical and syntactic analysis simplifies the design. Parser deals with token structure, not character-level details.</p>
+      </div>
+      <div class="card card-purple">
+        <strong>✓ Portability</strong>
+        <p style="margin-top:6px; font-size:12px;">Device-dependent input peculiarities can be restricted to the lexical analyzer.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card card-amber">
+        <strong>✓ Efficiency</strong>
+        <p style="margin-top:6px; font-size:12px;">Specialized buffering techniques can be applied to reading input characters, improving performance.</p>
+      </div>
+      <div class="card card-green">
+        <strong>✓ Modularity</strong>
+        <p style="margin-top:6px; font-size:12px;">Changes to input format affect only the lexical analyzer, not the entire compiler.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Basic Operation</h2>
+  <div class="code-block">
+<span class="comment">// Source Code</span>
+<span class="keyword">if</span> (count <span class="operator">&gt;</span> <span class="number">10</span>)
+    total = total + rate;
+
+<span class="comment">// Lexical Analyzer Output</span>
+<span class="operator">&lt;</span>IF, <span class="operator">-</span><span class="operator">&gt;</span>
+<span class="operator">&lt;</span>LPAREN, <span class="operator">-</span><span class="operator">&gt;</span>
+<span class="operator">&lt;</span>ID, <span class="string">"count"</span><span class="operator">&gt;</span>
+<span class="operator">&lt;</span>GT, <span class="operator">-</span><span class="operator">&gt;</span>
+<span class="operator">&lt;</span>NUM, <span class="number">10</span><span class="operator">&gt;</span>
+<span class="operator">&lt;</span>RPAREN, <span class="operator">-</span><span class="operator">&gt;</span>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Point:</strong> The lexical analyzer reads left-to-right, scanning one character at a time, and uses lookahead when necessary to identify tokens correctly.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Introduction</span><span>Page 3 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 4: INTERFACE -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 2</div>
+      <h1 class="section-title">Interface of Lexical Analyzer</h1>
+    </div>
+    <div class="page-number">Page 4</div>
+  </div>
+
+  <h2 class="sec2">System Architecture</h2>
+  <div class="diagram-box" style="padding:20px;">
+    <div style="display:flex; justify-content:space-around; align-items:center; flex-wrap:wrap; gap:16px;">
+      <div style="text-align:center;">
+        <div style="background:var(--bg); border:2px solid var(--primary); border-radius:10px; padding:16px 20px; font-weight:600;">Source<br>Program</div>
+      </div>
+      <div style="font-size:24px; color:var(--primary);">→</div>
+      <div style="text-align:center;">
+        <div style="background:linear-gradient(135deg, var(--primary), var(--teal)); color:white; border-radius:12px; padding:20px 24px; font-weight:700; font-size:15px;">LEXICAL<br>ANALYZER</div>
+        <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">getNextToken()</div>
+      </div>
+      <div style="font-size:24px; color:var(--primary);">→</div>
+      <div style="text-align:center;">
+        <div style="background:var(--bg); border:2px solid var(--teal); border-radius:10px; padding:16px 20px; font-weight:600;">Parser</div>
+      </div>
+    </div>
+    <div style="margin-top:16px; display:flex; justify-content:center; gap:24px;">
+      <div style="text-align:center;">
+        <div style="font-size:20px; color:var(--accent);">↕</div>
+        <div style="background:var(--accent-light); border:2px solid var(--accent); border-radius:8px; padding:12px 16px; font-weight:600; font-size:13px;">Symbol<br>Table</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:20px; color:var(--amber);">↕</div>
+        <div style="background:var(--amber-light); border:2px solid var(--amber); border-radius:8px; padding:12px 16px; font-weight:600; font-size:13px;">Error<br>Handler</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Input System Interface</h2>
+  <div class="card card-blue">
+    <h3 class="sec3">Input Buffering</h3>
+    <p>The lexical analyzer uses buffering techniques to efficiently read source characters:</p>
+    <ul style="font-size:12px; margin-top:6px;">
+      <li><strong>Buffer Pairs:</strong> Two N-character buffers for reading input</li>
+      <li><strong>Pointers:</strong> Two pointers (begin and forward) to scan tokens</li>
+      <li><strong>Sentinels:</strong> EOF markers to detect buffer boundaries</li>
+    </ul>
+    <div class="code-block" style="margin-top:8px; font-size:11px;">
+Buffer 1: [c][o][u][n][t][ ][=][ ][1][0][EOF]
+Buffer 2: [ ][+][ ][r][a][t][e][;][EOF]
+           ↑begin  ↑forward
+    </div>
+  </div>
+
+  <h2 class="sec2">Parser Interface</h2>
+  <div class="two-col">
+    <div>
+      <div class="card card-teal">
+        <strong>Token Generation</strong>
+        <p style="margin-top:6px; font-size:12px;">Parser calls <code>getNextToken()</code> function repeatedly. Lexical analyzer returns one token at a time.</p>
+        <div class="code-block" style="margin-top:8px; font-size:11px;">
+<span class="keyword">Token</span> getNextToken() {
+  <span class="comment">// Read characters</span>
+  <span class="comment">// Match pattern</span>
+  <span class="keyword">return</span> token;
+}
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card card-purple">
+        <strong>Token Passing</strong>
+        <p style="margin-top:6px; font-size:12px;">Token is passed as a structure containing token type and attribute value.</p>
+        <div class="code-block" style="margin-top:8px; font-size:11px;">
+<span class="keyword">struct</span> Token {
+  TokenType type;
+  <span class="keyword">int</span> attribute;
+}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Symbol Table Interface</h2>
+  <table>
+    <tr>
+      <th>Operation</th>
+      <th>Description</th>
+      <th>When Used</th>
+    </tr>
+    <tr>
+      <td><code>insert()</code></td>
+      <td>Add new identifier to table</td>
+      <td>First occurrence of identifier</td>
+    </tr>
+    <tr>
+      <td><code>lookup()</code></td>
+      <td>Search for identifier in table</td>
+      <td>Every identifier encountered</td>
+    </tr>
+    <tr>
+      <td><code>getAttribute()</code></td>
+      <td>Retrieve identifier information</td>
+      <td>During semantic analysis</td>
+    </tr>
+  </table>
+
+  <div class="note-box tip">
+    <strong>💡 Important:</strong> The lexical analyzer distinguishes between keywords and identifiers by first checking if an identifier matches a reserved keyword.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Interface</span><span>Page 4 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 5: TOKENS, LEXEMES, PATTERNS -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 3</div>
+      <h1 class="section-title">Tokens, Lexemes, and Patterns</h1>
+    </div>
+    <div class="page-number">Page 5</div>
+  </div>
+
+  <h2 class="sec2">Core Definitions</h2>
+  <div class="two-col">
+    <div class="card card-blue">
+      <strong>Token</strong>
+      <p style="margin-top:6px; font-size:12px;">A token is a pair consisting of a token name and an optional attribute value. The token name is an abstract symbol representing a lexical unit.</p>
+      <div style="margin-top:6px; font-size:11px; font-family:monospace; color:var(--accent);">&lt;token-name, attribute-value&gt;</div>
+    </div>
+    <div class="card card-teal">
+      <strong>Lexeme</strong>
+      <p style="margin-top:6px; font-size:12px;">A lexeme is a sequence of characters in the source program that matches the pattern for a token and is identified by the lexical analyzer as an instance of that token.</p>
+      <div style="margin-top:6px; font-size:11px; font-family:monospace; color:var(--teal);">Actual character sequence</div>
+    </div>
+  </div>
+  <div class="card card-purple" style="margin-top:10px;">
+    <strong>Pattern</strong>
+    <p style="margin-top:6px; font-size:12px;">A pattern is a description of the form that the lexemes of a token may take. For identifiers, the pattern is typically: letter followed by letters and digits. Patterns are specified using regular expressions.</p>
+  </div>
+
+  <h2 class="sec2">Detailed Example</h2>
+  <div class="code-block">
+<span class="keyword">if</span> (count <span class="operator">&gt;</span> <span class="number">10</span>) {
+    total = total + rate;
+}
+  </div>
+
+  <h3 class="sec3">Token Analysis</h3>
+  <table>
+    <tr>
+      <th>Lexeme</th>
+      <th>Token Name</th>
+      <th>Token (Pair)</th>
+      <th>Pattern</th>
+    </tr>
+    <tr>
+      <td><code>if</code></td>
+      <td>IF</td>
+      <td>&lt;IF, -&gt;</td>
+      <td>Keyword 'if'</td>
+    </tr>
+    <tr>
+      <td><code>(</code></td>
+      <td>LPAREN</td>
+      <td>&lt;LPAREN, -&gt;</td>
+      <td>Character '('</td>
+    </tr>
+    <tr>
+      <td><code>count</code></td>
+      <td>ID</td>
+      <td>&lt;ID, ptr_to_symtab&gt;</td>
+      <td>letter(letter|digit)*</td>
+    </tr>
+    <tr>
+      <td><code>&gt;</code></td>
+      <td>GT</td>
+      <td>&lt;GT, -&gt;</td>
+      <td>Character '&gt;'</td>
+    </tr>
+    <tr>
+      <td><code>10</code></td>
+      <td>NUM</td>
+      <td>&lt;NUM, 10&gt;</td>
+      <td>digit+</td>
+    </tr>
+    <tr>
+      <td><code>)</code></td>
+      <td>RPAREN</td>
+      <td>&lt;RPAREN, -&gt;</td>
+      <td>Character ')'</td>
+    </tr>
+    <tr>
+      <td><code>{</code></td>
+      <td>LBRACE</td>
+      <td>&lt;LBRACE, -&gt;</td>
+      <td>Character '{'</td>
+    </tr>
+    <tr>
+      <td><code>total</code></td>
+      <td>ID</td>
+      <td>&lt;ID, ptr_to_symtab&gt;</td>
+      <td>letter(letter|digit)*</td>
+    </tr>
+    <tr>
+      <td><code>=</code></td>
+      <td>ASSIGN</td>
+      <td>&lt;ASSIGN, -&gt;</td>
+      <td>Character '='</td>
+    </tr>
+    <tr>
+      <td><code>+</code></td>
+      <td>PLUS</td>
+      <td>&lt;PLUS, -&gt;</td>
+      <td>Character '+'</td>
+    </tr>
+    <tr>
+      <td><code>rate</code></td>
+      <td>ID</td>
+      <td>&lt;ID, ptr_to_symtab&gt;</td>
+      <td>letter(letter|digit)*</td>
+    </tr>
+    <tr>
+      <td><code>;</code></td>
+      <td>SEMICOLON</td>
+      <td>&lt;SEMICOLON, -&gt;</td>
+      <td>Character ';'</td>
+    </tr>
+  </table>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Distinction:</strong>
+    <ul style="margin-top:6px; font-size:12px;">
+      <li><strong>Lexeme</strong> = What you see in the source code (e.g., "count")</li>
+      <li><strong>Token</strong> = Abstract representation (e.g., &lt;ID, 3&gt;)</li>
+      <li><strong>Pattern</strong> = Rule that defines valid lexemes (e.g., letter(letter|digit)*)</li>
+    </ul>
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Tokens, Lexemes, Patterns</span><span>Page 5 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 6: TOKEN CLASSIFICATION -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 4</div>
+      <h1 class="section-title">Token Classification</h1>
+    </div>
+    <div class="page-number">Page 6</div>
+  </div>
+
+  <h2 class="sec2">Major Token Categories</h2>
+
+  <div class="card card-blue">
+    <h3 class="sec3">1. Keywords (Reserved Words)</h3>
+    <p style="font-size:12px;">Fixed strings that have special meaning and cannot be used as identifiers.</p>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// C/Java Keywords</span>
+<span class="keyword">if</span>, <span class="keyword">else</span>, <span class="keyword">while</span>, <span class="keyword">for</span>, <span class="keyword">int</span>, <span class="keyword">float</span>, <span class="keyword">return</span>, <span class="keyword">void</span>, <span class="keyword">class</span>, <span class="keyword">public</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Token:</strong> Each keyword typically has its own token type (IF, ELSE, WHILE, etc.)</p>
+  </div>
+
+  <div class="card card-teal">
+    <h3 class="sec3">2. Identifiers</h3>
+    <p style="font-size:12px;">Names chosen by programmers for variables, functions, classes, etc.</p>
+    <div style="margin-top:6px;">
+      <strong style="font-size:11.5px;">Pattern:</strong> <code>letter (letter | digit | _)*</code>
+    </div>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// Valid identifiers</span>
+count, total_sum, user1, _temp, maxValue
+
+<span class="comment">// Invalid identifiers</span>
+<span class="number">1</span>count  <span class="comment">// starts with digit</span>
+user<span class="operator">-</span>name <span class="comment">// contains hyphen</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Token:</strong> &lt;ID, pointer_to_symbol_table&gt;</p>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-purple">
+      <h3 class="sec3">3. Operators</h3>
+      <p style="font-size:12px;">Symbols for operations</p>
+      <table style="margin-top:6px; font-size:11px;">
+        <tr><th>Type</th><th>Examples</th></tr>
+        <tr><td>Arithmetic</td><td>+ - * / %</td></tr>
+        <tr><td>Relational</td><td>&lt; &gt; &lt;= &gt;= == !=</td></tr>
+        <tr><td>Logical</td><td>&& || !</td></tr>
+        <tr><td>Bitwise</td><td>& | ^ ~ &lt;&lt; &gt;&gt;</td></tr>
+        <tr><td>Assignment</td><td>= += -= *= /=</td></tr>
+      </table>
+    </div>
+    <div class="card card-amber">
+      <h3 class="sec3">4. Separators/Delimiters</h3>
+      <p style="font-size:12px;">Punctuation marks</p>
+      <table style="margin-top:6px; font-size:11px;">
+        <tr><th>Symbol</th><th>Token</th></tr>
+        <tr><td>( )</td><td>LPAREN, RPAREN</td></tr>
+        <tr><td>{ }</td><td>LBRACE, RBRACE</td></tr>
+        <tr><td>[ ]</td><td>LBRACKET, RBRACKET</td></tr>
+        <tr><td>;</td><td>SEMICOLON</td></tr>
+        <tr><td>,</td><td>COMMA</td></tr>
+        <tr><td>.</td><td>DOT</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card card-green">
+    <h3 class="sec3">5. Literals/Constants</h3>
+    <div style="margin-top:6px;">
+      <strong style="font-size:12px;">Integer Literals:</strong>
+      <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="number">42</span>        <span class="comment">// decimal</span>
+<span class="number">0x2A</span>      <span class="comment">// hexadecimal</span>
+<span class="number">052</span>       <span class="comment">// octal</span>
+<span class="number">0b101010</span>  <span class="comment">// binary</span>
+      </div>
+      <strong style="font-size:12px;">Floating-Point Literals:</strong>
+      <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="number">3.14</span>, <span class="number">2.5e10</span>, <span class="number">1.2E-5</span>
+      </div>
+      <strong style="font-size:12px;">String Literals:</strong>
+      <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="string">"Hello World"</span>, <span class="string">"Compiler\nDesign"</span>
+      </div>
+      <strong style="font-size:12px;">Character Literals:</strong>
+      <div class="code-block" style="margin-top:4px; font-size:11px;">
+<span class="string">'a'</span>, <span class="string">'Z'</span>, <span class="string">'\n'</span>, <span class="string">'\t'</span>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Special Tokens</h2>
+  <div class="two-col">
+    <div class="note-box info">
+      <strong>Comments:</strong> Typically ignored by lexical analyzer
+      <div style="margin-top:4px; font-size:11px;">
+        • Single-line: <code>// comment</code><br>
+        • Multi-line: <code>/* comment */</code>
+      </div>
+    </div>
+    <div class="note-box info">
+      <strong>Whitespace:</strong> Spaces, tabs, newlines
+      <div style="margin-top:4px; font-size:11px;">
+        • Used as token separators<br>
+        • Usually discarded after tokenization
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Token Classification</span><span>Page 6 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 7: DIFFICULTIES -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 5</div>
+      <h1 class="section-title">Difficulties in Lexical Analysis</h1>
+    </div>
+    <div class="page-number">Page 7</div>
+  </div>
+
+  <h2 class="sec2">Major Challenges</h2>
+
+  <div class="card card-red">
+    <h3 class="sec3">1. Reserved Keywords vs Identifiers</h3>
+    <p style="font-size:12px;">Keywords and identifiers follow the same pattern, requiring special handling.</p>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// How to distinguish?</span>
+<span class="keyword">if</span>    <span class="comment">// keyword</span>
+ifcount <span class="comment">// identifier</span>
+IF      <span class="comment">// identifier (C is case-sensitive)</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Solution:</strong> Maintain a keyword table; check identifier against it first</p>
+  </div>
+
+  <div class="card card-amber">
+    <h3 class="sec3">2. Lookahead Problems</h3>
+    <p style="font-size:12px;">Some tokens require examining future characters to determine token type.</p>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// Relational operators</span>
+<span class="operator">&lt;</span>     <span class="comment">// LT</span>
+<span class="operator">&lt;=</span>    <span class="comment">// LE (need to look at next char)</span>
+<span class="operator">&lt;&lt;</span>    <span class="comment">// LEFT_SHIFT</span>
+
+<span class="comment">// Division or comment?</span>
+<span class="operator">/</span>     <span class="comment">// DIVIDE</span>
+<span class="operator">/</span><span class="operator">/</span>    <span class="comment">// Single-line comment start</span>
+<span class="operator">/</span><span class="operator">*</span>    <span class="comment">// Multi-line comment start</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Solution:</strong> Use finite automata with lookahead capability</p>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-blue">
+      <h3 class="sec3">3. Nested Comments</h3>
+      <p style="font-size:12px;">Handling nested comments requires counting depth.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">/* outer /* inner */ still in comment */</span>
+      </div>
+      <p style="font-size:11.5px; margin-top:6px;"><strong>Challenge:</strong> Regular expressions cannot count, need more powerful mechanism (context-free grammar or counter)</p>
+    </div>
+    <div class="card card-teal">
+      <h3 class="sec3">4. White Space Handling</h3>
+      <p style="font-size:12px;">Different languages treat whitespace differently.</p>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// C: whitespace ignored</span>
+<span class="keyword">int</span> x=<span class="number">5</span>;  <span class="comment">// same as</span>
+<span class="keyword">int</span> x = <span class="number">5</span>;
+
+<span class="comment">// Python: whitespace significant</span>
+<span class="keyword">if</span> x <span class="operator">&gt;</span> <span class="number">0</span>:
+    <span class="keyword">print</span>(x)  <span class="comment">// indentation matters</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-purple">
+    <h3 class="sec3">5. Input Buffering Challenges</h3>
+    <p style="font-size:12px;">Efficiently reading from disk while maintaining fast access to characters.</p>
+    <ul style="font-size:12px; margin-top:6px;">
+      <li><strong>Problem:</strong> Reading one character at a time from disk is slow</li>
+      <li><strong>Solution:</strong> Read blocks of characters into buffers</li>
+      <li><strong>Challenge:</strong> Tokens may span buffer boundaries</li>
+      <li><strong>Technique:</strong> Use buffer pairs with sentinels</li>
+    </ul>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+Buffer 1: [...xyz][EOF]  <span class="comment">// Token may start here</span>
+Buffer 2: [abc...][EOF]  <span class="comment">// and end here</span>
+    </div>
+  </div>
+
+  <div class="card card-green">
+    <h3 class="sec3">6. Error Detection at Lexical Level</h3>
+    <p style="font-size:12px;">Many errors cannot be detected by lexical analyzer alone.</p>
+    <table style="margin-top:6px; font-size:11px;">
+      <tr>
+        <th>Can Detect</th>
+        <th>Cannot Detect</th>
+      </tr>
+      <tr>
+        <td>Illegal character: <code>@#$</code></td>
+        <td>Undeclared variable</td>
+      </tr>
+      <tr>
+        <td>Malformed number: <code>3.14.15</code></td>
+        <td>Type mismatch</td>
+      </tr>
+      <tr>
+        <td>Unclosed string: <code>"hello</code></td>
+        <td>Syntax errors</td>
+      </tr>
+    </table>
+  </div>
+
+  <h2 class="sec2">Fortran Example (Classic Challenge)</h2>
+  <div class="code-block">
+<span class="comment">// Fortran: whitespace not significant</span>
+DO <span class="number">5</span> I = <span class="number">1</span>, <span class="number">25</span>   <span class="comment">// DO loop</span>
+DO <span class="number">5</span> I = <span class="number">1.25</span>   <span class="comment">// Assignment to variable DO5I</span>
+
+<span class="comment">// Need significant lookahead to distinguish!</span>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Key Takeaway:</strong> Lexical analysis seems simple but requires careful handling of edge cases, lookahead, and buffering strategies. Modern lexical analyzers use finite automata to handle these challenges efficiently.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Difficulties</span><span>Page 7 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 8: ERROR REPORTING -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 6</div>
+      <h1 class="section-title">Error Reporting in Lexical Analysis</h1>
+    </div>
+    <div class="page-number">Page 8</div>
+  </div>
+
+  <h2 class="sec2">Types of Lexical Errors</h2>
+
+  <div class="card card-red">
+    <h3 class="sec3">1. Invalid Characters</h3>
+    <p style="font-size:12px;">Characters not allowed in the language alphabet.</p>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="keyword">int</span> a = <span class="number">10</span>@;  <span class="comment">// '@' is illegal in C</span>
+price $ = <span class="number">99.99</span>;  <span class="comment">// '$' not allowed in identifier</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Error Message:</strong> "Illegal character '@' at line 3, column 12"</p>
+  </div>
+
+  <div class="card card-amber">
+    <h3 class="sec3">2. Malformed Tokens</h3>
+    <p style="font-size:12px;">Tokens that don't match any valid pattern.</p>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="keyword">float</span> pi = <span class="number">3.14.15</span>;    <span class="comment">// Two decimal points</span>
+<span class="keyword">int</span> num = <span class="number">0x12G</span>;       <span class="comment">// 'G' not valid hex digit</span>
+<span class="keyword">double</span> x = <span class="number">1.5e</span>;      <span class="comment">// Incomplete exponent</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Error Message:</strong> "Malformed numeric constant at line 5"</p>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-blue">
+      <h3 class="sec3">3. Unclosed String</h3>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="string">"Hello World</span>
+<span class="comment">// Missing closing quote</span>
+      </div>
+      <p style="font-size:11.5px; margin-top:6px;"><strong>Error:</strong> "Unterminated string literal"</p>
+    </div>
+    <div class="card card-teal">
+      <h3 class="sec3">4. Unclosed Comment</h3>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">/* This comment
+   never ends...</span>
+      </div>
+      <p style="font-size:11.5px; margin-top:6px;"><strong>Error:</strong> "Unterminated comment"</p>
+    </div>
+  </div>
+
+  <div class="card card-purple">
+    <h3 class="sec3">5. Number Overflow</h3>
+    <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="keyword">int</span> huge = <span class="number">9999999999999999999</span>;  <span class="comment">// Exceeds int range</span>
+    </div>
+    <p style="font-size:11.5px; margin-top:6px;"><strong>Error:</strong> "Integer constant too large"</p>
+  </div>
+
+  <h2 class="sec2">Error Recovery Strategies</h2>
+
+  <table>
+    <tr>
+      <th>Strategy</th>
+      <th>Description</th>
+      <th>Example</th>
+    </tr>
+    <tr>
+      <td><strong>Panic Mode</strong></td>
+      <td>Skip characters until a valid token is found</td>
+      <td>Skip to next semicolon or newline</td>
+    </tr>
+    <tr>
+      <td><strong>Delete Character</strong></td>
+      <td>Remove the illegal character and continue</td>
+      <td><code>ab@cd</code> → treat as <code>abcd</code></td>
+    </tr>
+    <tr>
+      <td><strong>Insert Character</strong></td>
+      <td>Add missing character (e.g., closing quote)</td>
+      <td><code>"hello</code> → add closing <code>"</code></td>
+    </tr>
+    <tr>
+      <td><strong>Replace Character</strong></td>
+      <td>Substitute with correct character</td>
+      <td><code>0x12G</code> → suggest hex digits</td>
+    </tr>
+    <tr>
+      <td><strong>Transpose Characters</strong></td>
+      <td>Swap adjacent characters</td>
+      <td><code>fi</code> (typo) → <code>if</code></td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">Error Reporting Best Practices</h2>
+
+  <div class="two-col">
+    <div class="note-box important">
+      <strong>Good Error Message Components:</strong>
+      <ul style="font-size:12px; margin-top:6px;">
+        <li>Line number and column</li>
+        <li>Clear description of error</li>
+        <li>Context (show the line)</li>
+        <li>Suggestion for fix (if possible)</li>
+      </ul>
+    </div>
+    <div class="note-box tip">
+      <strong>Example Good Error:</strong>
+      <div class="code-block" style="margin-top:6px; font-size:10.5px;">
+Error at line <span class="number">15</span>, col <span class="number">8</span>:
+  <span class="keyword">int</span> x = <span class="number">10</span>$;
+          ^
+Illegal character '$'
+Suggestion: Remove '$'
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Error Handling Algorithm</h2>
+
+  <div class="code-block">
+<span class="keyword">function</span> getNextToken() {
+  <span class="keyword">while</span> (<span class="keyword">true</span>) {
+    c = getChar();
+    <span class="keyword">if</span> (isLetter(c)) {
+      <span class="keyword">return</span> scanIdentifier();
+    } <span class="keyword">else</span> <span class="keyword">if</span> (isDigit(c)) {
+      <span class="keyword">return</span> scanNumber();
+    } <span class="keyword">else</span> <span class="keyword">if</span> (isValidSymbol(c)) {
+      <span class="keyword">return</span> scanOperator();
+    } <span class="keyword">else</span> {
+      reportError(<span class="string">"Illegal character"</span>, c);
+      <span class="comment">// Recovery: skip character and continue</span>
+      <span class="keyword">continue</span>;
+    }
+  }
+}
+  </div>
+
+  <div class="note-box exam">
+    <strong>🎯 Exam Tip:</strong> Remember that lexical errors are relatively rare in practice. Most errors are syntactic or semantic. The lexical analyzer's main job is correct tokenization, not comprehensive error correction.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Error Reporting</span><span>Page 8 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 9: IMPLEMENTATION -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 7</div>
+      <h1 class="section-title">Implementation of Lexical Analyzer</h1>
+    </div>
+    <div class="page-number">Page 9</div>
+  </div>
+
+  <h2 class="sec2">Implementation Approaches</h2>
+
+  <div class="two-col">
+    <div class="card card-blue">
+      <h3 class="sec3">1. Manual Implementation</h3>
+      <ul style="font-size:12px; margin-top:6px;">
+        <li>Write code directly in a programming language</li>
+        <li>Use switch-case or if-else statements</li>
+        <li>More control, harder to maintain</li>
+        <li>Good for simple languages</li>
+      </ul>
+    </div>
+    <div class="card card-teal">
+      <h3 class="sec3">2. Automated Tools</h3>
+      <ul style="font-size:12px; margin-top:6px;">
+        <li>Use lexical analyzer generators (LEX, FLEX)</li>
+        <li>Specify patterns using regular expressions</li>
+        <li>Tool generates C code automatically</li>
+        <li>Industry standard approach</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="sec2">Finite Automata Concept</h2>
+
+  <div class="card card-purple">
+    <p style="font-size:12px;">Lexical analysis is based on <strong>Finite Automata (FA)</strong> — a mathematical model with states and transitions.</p>
+    <div style="margin-top:8px;">
+      <strong style="font-size:12px;">Components:</strong>
+      <ul style="font-size:12px; margin-top:4px;">
+        <li><strong>States:</strong> Represent progress in recognizing a token</li>
+        <li><strong>Transitions:</strong> Move from one state to another based on input character</li>
+        <li><strong>Start State:</strong> Initial state before reading any input</li>
+        <li><strong>Final States:</strong> Accepting states indicating valid token recognized</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="sec2">Pattern Matching Workflow</h2>
+
+  <div class="diagram-box">
+    <div class="flow-step">Read Character</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">State Transition</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Pattern Match?</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Generate Token</div>
+  </div>
+
+  <h2 class="sec2">Regular Expression to Automata</h2>
+
+  <div class="card card-amber">
+    <p style="font-size:12px;"><strong>Process:</strong> Regular Expression → NFA → DFA → Optimized DFA → Code</p>
+    <ol style="font-size:12px; margin-top:6px;">
+      <li>Write regular expressions for each token type</li>
+      <li>Convert to Non-deterministic Finite Automaton (NFA)</li>
+      <li>Convert NFA to Deterministic Finite Automaton (DFA)</li>
+      <li>Minimize DFA (optimize states)</li>
+      <li>Generate table-driven or direct code</li>
+    </ol>
+  </div>
+
+  <h2 class="sec2">Implementation Example (Pseudo-code)</h2>
+
+  <div class="code-block">
+<span class="keyword">class</span> Lexer {
+  <span class="keyword">char</span> currentChar;
+  <span class="keyword">int</span> position;
+  <span class="keyword">string</span> input;
+  
+  <span class="keyword">function</span> getNextToken() {
+    skipWhitespace();
+    
+    <span class="keyword">if</span> (isLetter(currentChar)) {
+      <span class="keyword">return</span> scanIdentifier();
+    }
+    <span class="keyword">if</span> (isDigit(currentChar)) {
+      <span class="keyword">return</span> scanNumber();
+    }
+    <span class="keyword">if</span> (currentChar == <span class="string">'"'</span>) {
+      <span class="keyword">return</span> scanString();
+    }
+    <span class="keyword">if</span> (isOperator(currentChar)) {
+      <span class="keyword">return</span> scanOperator();
+    }
+    
+    error(<span class="string">"Unexpected character"</span>);
+  }
+  
+  <span class="keyword">function</span> scanIdentifier() {
+    lexeme = <span class="string">""</span>;
+    <span class="keyword">while</span> (isLetter(currentChar) || isDigit(currentChar)) {
+      lexeme += currentChar;
+      advance();
+    }
+    
+    <span class="comment">// Check if keyword</span>
+    <span class="keyword">if</span> (isKeyword(lexeme)) {
+      <span class="keyword">return</span> Token(KEYWORD, lexeme);
+    }
+    
+    <span class="comment">// Add to symbol table</span>
+    index = symbolTable.insert(lexeme);
+    <span class="keyword">return</span> Token(ID, index);
+  }
+  
+  <span class="keyword">function</span> scanNumber() {
+    lexeme = <span class="string">""</span>;
+    <span class="keyword">while</span> (isDigit(currentChar)) {
+      lexeme += currentChar;
+      advance();
+    }
+    
+    <span class="comment">// Handle decimal</span>
+    <span class="keyword">if</span> (currentChar == <span class="string">'.'</span>) {
+      lexeme += currentChar;
+      advance();
+      <span class="keyword">while</span> (isDigit(currentChar)) {
+        lexeme += currentChar;
+        advance();
+      }
+    }
+    
+    <span class="keyword">return</span> Token(NUM, toNumber(lexeme));
+  }
+}
+  </div>
+
+  <div class="note-box tip">
+    <strong>💡 Implementation Tip:</strong> Use a two-pointer approach for buffering. One pointer marks the start of the current token, another scans forward. This allows "unreading" characters when needed.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Implementation</span><span>Page 9 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 10: REGULAR DEFINITIONS -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 8</div>
+      <h1 class="section-title">Regular Definitions & Expressions</h1>
+    </div>
+    <div class="page-number">Page 10</div>
+  </div>
+
+  <h2 class="sec2">Regular Expression Basics</h2>
+
+  <div class="card card-blue">
+    <p style="font-size:12px;">Regular expressions define patterns for tokens. They use a concise notation to specify sets of strings.</p>
+  </div>
+
+  <h3 class="sec3">Basic Operations</h3>
+  <table>
+    <tr>
+      <th>Operation</th>
+      <th>Notation</th>
+      <th>Meaning</th>
+      <th>Example</th>
+    </tr>
+    <tr>
+      <td>Concatenation</td>
+      <td>ab</td>
+      <td>a followed by b</td>
+      <td>"ab"</td>
+    </tr>
+    <tr>
+      <td>Union (OR)</td>
+      <td>a | b</td>
+      <td>a or b</td>
+      <td>"a" or "b"</td>
+    </tr>
+    <tr>
+      <td>Kleene Star</td>
+      <td>a*</td>
+      <td>Zero or more a's</td>
+      <td>"", "a", "aa", "aaa", ...</td>
+    </tr>
+    <tr>
+      <td>Plus</td>
+      <td>a+</td>
+      <td>One or more a's</td>
+      <td>"a", "aa", "aaa", ...</td>
+    </tr>
+    <tr>
+      <td>Optional</td>
+      <td>a?</td>
+      <td>Zero or one a</td>
+      <td>"" or "a"</td>
+    </tr>
+    <tr>
+      <td>Grouping</td>
+      <td>(ab)*</td>
+      <td>Zero or more ab's</td>
+      <td>"", "ab", "abab", ...</td>
+    </tr>
+    <tr>
+      <td>Character Class</td>
+      <td>[a-z]</td>
+      <td>Any lowercase letter</td>
+      <td>"a", "b", ..., "z"</td>
+    </tr>
+  </table>
+
+  <h2 class="sec2">Regular Definitions</h2>
+
+  <div class="card card-teal">
+    <p style="font-size:12px;">Regular definitions give names to regular expressions for reuse and clarity.</p>
+    <div class="code-block" style="margin-top:8px;">
+<span class="comment">// Define basic building blocks</span>
+digit    → <span class="number">0</span> | <span class="number">1</span> | <span class="number">2</span> | <span class="number">3</span> | <span class="number">4</span> | <span class="number">5</span> | <span class="number">6</span> | <span class="number">7</span> | <span class="number">8</span> | <span class="number">9</span>
+letter   → A | B | ... | Z | a | b | ... | z
+    </div>
+  </div>
+
+  <h2 class="sec2">Token Pattern Examples</h2>
+
+  <div class="card card-purple">
+    <h3 class="sec3">Identifiers</h3>
+    <div class="code-block" style="margin-top:6px;">
+letter    → [A<span class="operator">-</span>Za<span class="operator">-</span>z]
+digit     → [<span class="number">0</span><span class="operator">-</span><span class="number">9</span>]
+identifier → letter (letter | digit | _)*
+
+<span class="comment">// Examples: x, count, total_sum, var123</span>
+    </div>
+  </div>
+
+  <div class="card card-amber">
+    <h3 class="sec3">Numbers</h3>
+    <div class="code-block" style="margin-top:6px;">
+<span class="comment">// Integer</span>
+digit   → [<span class="number">0</span><span class="operator">-</span><span class="number">9</span>]
+integer → digit+
+
+<span class="comment">// Floating-point</span>
+optionalFraction → (. digit+)?
+optionalExponent → (E (<span class="operator">+</span> | <span class="operator">-</span>)? digit+)?
+float → digit+ optionalFraction optionalExponent
+
+<span class="comment">// Examples: 42, 3.14, 2.5e10, 1.2E-5</span>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-green">
+      <h3 class="sec3">String Literals</h3>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+char   → any character except <span class="string">"</span>
+string → <span class="string">"</span> char* <span class="string">"</span>
+
+<span class="comment">// Examples:</span>
+<span class="string">"Hello"</span>
+<span class="string">"Compiler Design"</span>
+      </div>
+    </div>
+    <div class="card card-red">
+      <h3 class="sec3">Comments</h3>
+      <div class="code-block" style="margin-top:6px; font-size:11px;">
+<span class="comment">// Single-line</span>
+comment → <span class="operator">/</span><span class="operator">/</span> (any char except newline)*
+
+<span class="comment">// Multi-line</span>
+comment → <span class="operator">/</span><span class="operator">*</span> (any char)* <span class="operator">*</span><span class="operator">/</span>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Complete Example: C Language Patterns</h2>
+
+  <div class="code-block">
+<span class="comment">// Basic elements</span>
+delim      → blank | tab | newline
+ws         → delim+
+letter     → [A<span class="operator">-</span>Za<span class="operator">-</span>z_]
+digit      → [<span class="number">0</span><span class="operator">-</span><span class="number">9</span>]
+id         → letter (letter | digit)*
+
+<span class="comment">// Numbers</span>
+number     → digit+ (. digit+)? (E [<span class="operator">+</span><span class="operator">-</span>]? digit+)?
+
+<span class="comment">// Operators</span>
+relop      → <span class="operator">&lt;</span> | <span class="operator">&lt;=</span> | == | != | <span class="operator">&gt;</span> | <span class="operator">&gt;=</span>
+assignop   → =
+
+<span class="comment">// String</span>
+string     → <span class="string">"</span> (any char except <span class="string">"</span>)* <span class="string">"</span>
+  </div>
+
+  <div class="note-box important">
+    <strong>⚠️ Priority Rule:</strong> When multiple patterns match, choose the longest match. If still tied, choose the pattern listed first in the specification.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Regular Definitions</span><span>Page 10 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 11: TRANSITION DIAGRAMS -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 9</div>
+      <h1 class="section-title">Transition Diagrams</h1>
+    </div>
+    <div class="page-number">Page 11</div>
+  </div>
+
+  <h2 class="sec2">What are Transition Diagrams?</h2>
+
+  <div class="card card-blue">
+    <p style="font-size:12px;">Transition diagrams (state diagrams) are graphical representations of finite automata. They show how the lexical analyzer moves between states while recognizing tokens.</p>
+    <ul style="font-size:12px; margin-top:6px;">
+      <li><strong>Circles:</strong> Represent states</li>
+      <li><strong>Arrows:</strong> Represent transitions on input characters</li>
+      <li><strong>Double Circle:</strong> Final/accepting state</li>
+      <li><strong>Start Arrow:</strong> Marks the initial state</li>
+    </ul>
+  </div>
+
+  <h2 class="sec2">Example 1: Identifier Recognition</h2>
+
+  <div class="card card-teal">
+    <p style="font-size:12px;"><strong>Pattern:</strong> letter (letter | digit)*</p>
+    <div class="transition-diagram">
+      <div class="state-circle">0</div>
+      <div class="trans-arrow" style="position:relative;">
+        →
+        <div class="trans-label">letter</div>
+      </div>
+      <div class="state-circle final">1</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-left:8px;">
+        ↻ letter|digit
+      </div>
+    </div>
+    <div style="margin-top:8px; font-size:12px;">
+      <strong>States:</strong>
+      <ul style="margin-top:4px;">
+        <li>State 0: Start state</li>
+        <li>State 1: Final state (accepting) — loops on letter or digit</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="sec2">Example 2: Integer Recognition</h2>
+
+  <div class="card card-purple">
+    <p style="font-size:12px;"><strong>Pattern:</strong> digit+</p>
+    <div class="transition-diagram">
+      <div class="state-circle">0</div>
+      <div class="trans-arrow" style="position:relative;">
+        →
+        <div class="trans-label">digit</div>
+      </div>
+      <div class="state-circle final">1</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-left:8px;">
+        ↻ digit
+      </div>
+    </div>
+    <div style="margin-top:8px; font-size:12px;">
+      <strong>Process:</strong> Keep reading digits until a non-digit is encountered. Return integer token.
+    </div>
+  </div>
+
+  <h2 class="sec2">Example 3: Relational Operators (&lt;, &lt;=, &lt;&gt;)</h2>
+
+  <div class="card card-amber">
+    <p style="font-size:12px;">This diagram shows lookahead — need to peek at next character.</p>
+    <div style="background:white; border:2px solid var(--amber); border-radius:10px; padding:16px; margin-top:8px; font-size:11px; font-family:monospace;">
+      <div style="margin-bottom:12px;">
+        Start (0) --&lt;--> State 1
+      </div>
+      <div style="margin-left:20px; margin-bottom:8px;">
+        From State 1:
+        <ul style="margin-left:20px; margin-top:4px;">
+          <li>If '=' → State 2 (final) → return LE (&lt;=)</li>
+          <li>If '&gt;' → State 3 (final) → return NE (&lt;&gt;)</li>
+          <li>Else → State 4 (final) → return LT (&lt;) and retract</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:8px; font-size:12px;">
+      <strong>Key Point:</strong> State 4 requires retraction (put back the character that wasn't part of the token)
+    </div>
+  </div>
+
+  <h2 class="sec2">Example 4: Floating-Point Number</h2>
+
+  <div class="card card-green">
+    <p style="font-size:12px;"><strong>Pattern:</strong> digit+ (. digit+)? (E [+-]? digit+)?</p>
+    <div style="background:white; border:2px solid var(--green); border-radius:10px; padding:14px; margin-top:8px; font-size:11px; font-family:monospace;">
+      <div>State 0 --digit--> State 1 (accept as integer)</div>
+      <div style="margin-top:6px;">State 1 --digit--> State 1 (loop)</div>
+      <div style="margin-top:6px;">State 1 --.--> State 2 (decimal point)</div>
+      <div style="margin-top:6px;">State 2 --digit--> State 3 (accept as float)</div>
+      <div style="margin-top:6px;">State 3 --digit--> State 3 (loop)</div>
+      <div style="margin-top:6px;">State 3 --E--> State 4 (exponent)</div>
+      <div style="margin-top:6px;">State 4 --+--> State 5</div>
+      <div style="margin-top:6px;">State 5 --digit--> State 6 (accept as float)</div>
+      <div style="margin-top:6px;">State 6 --digit--> State 6 (loop)</div>
+    </div>
+  </div>
+
+  <h2 class="sec2">Actions in Transition Diagrams</h2>
+
+  <table style="font-size:11.5px;">
+    <tr>
+      <th>Action</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td><strong>Read Next Char</strong></td>
+      <td>Move forward pointer, consume character</td>
+    </tr>
+    <tr>
+      <td><strong>Retract</strong></td>
+      <td>Move back one character (lookahead consumed but not part of token)</td>
+    </tr>
+    <tr>
+      <td><strong>Accept</strong></td>
+      <td>Recognize token, return to parser</td>
+    </tr>
+    <tr>
+      <td><strong>Error</strong></td>
+      <td>No valid transition, report lexical error</td>
+    </tr>
+  </table>
+
+  <div class="note-box tip">
+    <strong>💡 Implementation Tip:</strong> Transition diagrams can be implemented as: (1) Table-driven code with state transition tables, or (2) Direct code with nested switch/if statements.
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Transition Diagrams</span><span>Page 11 / 12</span>
+  </div>
+</div>
+
+<!-- PAGE 12: EXAM QUICK REVISION -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-title-wrap">
+      <div class="st-badge">Topic 10</div>
+      <h1 class="section-title">Exam Quick Revision</h1>
+    </div>
+    <div class="page-number">Page 12</div>
+  </div>
+
+  <div class="note-box exam">
+    <strong>🎯 Last-Minute Revision:</strong> Focus on these key concepts for maximum exam performance!
+  </div>
+
+  <h2 class="sec2">2-Mark Questions <span class="badge badge-red">★ High Priority</span></h2>
+
+  <div class="two-col">
+    <div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is a lexical analyzer?</div>
+        <div class="eq-answer">A: First phase of compiler that reads character stream and groups them into meaningful tokens.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Define token.</div>
+        <div class="eq-answer">A: A pair &lt;token-type, attribute-value&gt; representing a lexical unit.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is a lexeme?</div>
+        <div class="eq-answer">A: A sequence of characters in source code matching a token pattern.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is a pattern?</div>
+        <div class="eq-answer">A: A description of the form that lexemes of a token can take, usually specified by regular expressions.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Why separate lexical analysis?</div>
+        <div class="eq-answer">A: For simplicity, efficiency, portability, and modularity of compiler design.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is input buffering?</div>
+        <div class="eq-answer">A: Technique using buffer pairs to efficiently read source characters from disk.</div>
+      </div>
+    </div>
+    <div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is a transition diagram?</div>
+        <div class="eq-answer">A: Graphical representation of finite automaton showing states and transitions for token recognition.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is lookahead?</div>
+        <div class="eq-answer">A: Reading ahead one or more characters to determine token type, then retracting if needed.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Define regular expression.</div>
+        <div class="eq-answer">A: Notation for describing patterns of strings, used to specify token patterns.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: What is LEX?</div>
+        <div class="eq-answer">A: A lexical analyzer generator tool that creates scanners from regular expression specifications.</div>
+      </div>
+      <div class="exam-q">
+        <div class="eq-question">Q: Types of lexical errors?</div>
+        <div class="eq-answer">A: Invalid characters, malformed tokens, unclosed strings/comments, number overflow.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec2">5-Mark Questions <span class="badge badge-amber">★ Medium Priority</span></h2>
+
+  <ul style="font-size:12px;">
+    <li>Explain token, lexeme, and pattern with examples.</li>
+    <li>Describe the role and responsibilities of a lexical analyzer.</li>
+    <li>Draw and explain the interface of lexical analyzer with parser and symbol table.</li>
+    <li>What are the difficulties in lexical analysis? Explain with examples.</li>
+    <li>Explain input buffering technique with buffer pairs.</li>
+    <li>Write regular expressions for: identifiers, integers, floating-point numbers.</li>
+    <li>Draw transition diagram for recognizing relational operators.</li>
+    <li>Explain error recovery strategies in lexical analysis.</li>
+  </ul>
+
+  <h2 class="sec2">10-Mark Questions <span class="badge badge-blue">★ Important</span></h2>
+
+  <ul style="font-size:12px;">
+    <li>Explain the structure of lexical analyzer with a neat diagram. Describe its interaction with parser, symbol table, and input system.</li>
+    <li>Write regular definitions for all tokens in a C-like language (keywords, identifiers, operators, numbers, strings).</li>
+    <li>Draw transition diagrams for: (a) identifiers, (b) unsigned integers, (c) relational operators. Explain how they work.</li>
+    <li>Design a lexical analyzer for a simple language. Write pseudo-code showing token recognition logic.</li>
+    <li>Explain finite automata approach to lexical analysis. How are regular expressions converted to automata?</li>
+  </ul>
+
+  <h2 class="sec2">Key Points to Remember <span class="badge badge-green">★ Must Know</span></h2>
+
+  <div class="card card-amber" style="padding:10px 12px;">
+    <ul style="font-size:12px;">
+      <li>Lexical analyzer = Scanner = Tokenizer (all same)</li>
+      <li>Output: Stream of tokens → Input: Character stream</li>
+      <li>Uses <strong>Regular Expressions</strong> and <strong>Finite Automata</strong></li>
+      <li>Symbol table stores identifier information</li>
+      <li>Parser calls <code>getNextToken()</code> repeatedly</li>
+      <li>Removes whitespace and comments</li>
+      <li>Keywords checked before treating as identifier</li>
+      <li>Buffering uses two N-character buffers with sentinels</li>
+      <li>Lookahead needed for operators like <code>&lt;=</code>, <code>!=</code></li>
+      <li>Transition diagrams implement finite automata visually</li>
+      <li>Double circle = final/accepting state</li>
+      <li>Lexical errors are rare; most errors are syntactic</li>
+    </ul>
+  </div>
+
+  <h2 class="sec2">Regular Expression Cheat Sheet</h2>
+
+  <div class="two-col">
+    <div class="code-block" style="font-size:11px;">
+<span class="comment">// Basic operators</span>
+a | b     <span class="comment">// a OR b</span>
+ab        <span class="comment">// a followed by b</span>
+a*        <span class="comment">// zero or more a</span>
+a+        <span class="comment">// one or more a</span>
+a?        <span class="comment">// zero or one a</span>
+[a<span class="operator">-</span>z]     <span class="comment">// any lowercase letter</span>
+    </div>
+    <div class="code-block" style="font-size:11px;">
+<span class="comment">// Common patterns</span>
+letter → [A<span class="operator">-</span>Za<span class="operator">-</span>z]
+digit → [<span class="number">0</span><span class="operator">-</span><span class="number">9</span>]
+id → letter(letter|digit)*
+number → digit+
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:16px; padding:12px; background:var(--bg); border-radius:10px; border:1.5px solid var(--border);">
+    <div style="font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--primary-dark); margin-bottom:4px;">Module 2 — Lexical Analysis (CO2)</div>
+    <div style="font-size:12px; color:var(--text-muted);">B.E. Computer Science · Compiler Design · Complete Study Guide</div>
+    <div style="margin-top:8px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+      <span class="badge badge-blue">Tokens & Patterns</span>
+      <span class="badge badge-teal">Finite Automata</span>
+      <span class="badge badge-purple">Regular Expressions</span>
+      <span class="badge badge-amber">Transition Diagrams</span>
+      <span class="badge badge-green">Implementation Ready</span>
+      <span class="badge badge-red">100% Exam Coverage</span>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Module 2 – Lexical Analysis (CO2)</span><span>Exam Quick Revision</span><span>End of Document</span>
+  </div>
+</div>
+
+</body>
+</html>
